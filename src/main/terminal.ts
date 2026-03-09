@@ -1,7 +1,6 @@
 import os from "node:os";
 import path from "node:path";
 import { BrowserWindow } from "electron";
-import * as pty from "node-pty";
 import { buildEnv, resolveOpenclawBinary } from "./openclaw";
 import { buildInstallerSetupCommand } from "./installerSetup";
 import {
@@ -13,13 +12,38 @@ import {
   TerminalSessionKind,
 } from "./types";
 
+type PtyModule = typeof import("node-pty");
+type PtyProcess = import("node-pty").IPty;
+
 interface TerminalEntry {
   meta: TerminalSession;
-  process?: pty.IPty;
+  process?: PtyProcess;
   buffer: string;
 }
 
 const sessions = new Map<string, TerminalEntry>();
+let cachedNodePty: PtyModule | null | undefined;
+let cachedNodePtyError: string | undefined;
+
+function getNodePty() {
+  if (cachedNodePty !== undefined) {
+    return cachedNodePty;
+  }
+
+  try {
+    cachedNodePty = require("node-pty") as PtyModule;
+    cachedNodePtyError = undefined;
+  } catch (error) {
+    cachedNodePty = null;
+    cachedNodePtyError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  }
+
+  return cachedNodePty;
+}
+
+function nodePtyUnavailableMessage() {
+  return `应用内终端当前不可用，node-pty 没有在这台机器上正确加载。你仍然可以先使用系统终端继续安装或维护 OpenClaw。${cachedNodePtyError ? `\n\n详细原因：${cachedNodePtyError}` : ""}`;
+}
 
 function shellQuote(value: string) {
   if (/^[A-Za-z0-9_./:=+-]+$/.test(value)) {
@@ -98,6 +122,14 @@ export async function openTerminalSession(
   kind: TerminalSessionKind,
   setup?: InstallerSetupPayload,
 ): Promise<TerminalActionResponse> {
+  const nodePty = getNodePty();
+  if (!nodePty) {
+    return {
+      ok: false,
+      message: nodePtyUnavailableMessage(),
+    };
+  }
+
   const current = findRunningSession(kind);
   if (current) {
     return {
@@ -139,7 +171,7 @@ export async function openTerminalSession(
   };
   const startBanner = `${label}\n$ ${command || spec.file}`;
 
-  const ptyProcess = pty.spawn(spec.file, spec.args, {
+  const ptyProcess = nodePty.spawn(spec.file, spec.args, {
     name: "xterm-color",
     cols: 120,
     rows: 34,
