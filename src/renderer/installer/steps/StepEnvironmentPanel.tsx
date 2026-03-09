@@ -24,15 +24,14 @@ export default function StepEnvironmentPanel({ checks, facts, logs, tasks }: Ste
 
   const nodeReady = checks.find((item) => item.label === "Node.js")?.probe.ok ?? false;
   const npmReady = checks.find((item) => item.label === "npm")?.probe.ok ?? false;
-  const openclawReady = checks.find((item) => item.label === "openclaw")?.probe.ok ?? false;
   const dependencyReady = nodeReady && npmReady;
 
   const phases = [
     {
       key: "scan",
       label: "检测当前环境",
-      detail: "逐项检查 Node.js、npm 和 OpenClaw CLI。",
-      state: bootstrapRunning || openclawReady ? "done" : "active",
+      detail: "逐项检查 Node.js 和 npm 是否已经可用。",
+      state: dependencyReady || bootstrapRunning ? "done" : "active",
     },
     {
       key: "deps",
@@ -41,10 +40,10 @@ export default function StepEnvironmentPanel({ checks, facts, logs, tasks }: Ste
       state: dependencyReady ? "done" : bootstrapRunning ? "active" : "pending",
     },
     {
-      key: "openclaw",
-      label: "安装 OpenClaw CLI",
-      detail: openclawReady ? "当前已经检测到可用的 openclaw 命令。" : "依赖就绪后会继续安装 OpenClaw CLI。",
-      state: openclawReady ? "done" : bootstrapRunning ? "active" : "pending",
+      key: "finish",
+      label: "结束前置准备",
+      detail: dependencyReady ? "环境前置条件已经齐了，可以继续安装 OpenClaw CLI。" : "前置环境补齐后，下一步才开始安装 OpenClaw CLI。",
+      state: dependencyReady ? "done" : bootstrapRunning ? "active" : "pending",
     },
   ] as const;
 
@@ -56,12 +55,12 @@ export default function StepEnvironmentPanel({ checks, facts, logs, tasks }: Ste
           <h3>自动检测并补齐环境</h3>
         </div>
 
-        <article className={`environment-hero ${bootstrapRunning ? "is-running" : openclawReady ? "is-ready" : ""}`}>
+        <article className={`environment-hero ${bootstrapRunning ? "is-running" : dependencyReady ? "is-ready" : ""}`}>
           <div className="environment-hero-head">
-            <div className={`environment-orb ${bootstrapRunning ? "is-running" : openclawReady ? "is-ready" : ""}`} />
+            <div className={`environment-orb ${bootstrapRunning ? "is-running" : dependencyReady ? "is-ready" : ""}`} />
             <div>
-              <strong>{bootstrapRunning ? "正在自动准备环境" : openclawReady ? "环境已经准备完成" : "等待开始自动准备"}</strong>
-              <p>{bootstrapRunning ? "缺少的环境会按顺序自动补齐，完成后直接进入配置步骤。" : "首次安装会先检查当前机器，再自动补齐缺失的依赖和 OpenClaw。"}</p>
+              <strong>{bootstrapRunning ? "正在自动补齐环境" : dependencyReady ? "前置环境已经准备完成" : "等待开始自动补齐环境"}</strong>
+              <p>{bootstrapRunning ? "这里只处理前置环境。Node.js 和 npm 补齐后，下一步才会安装 OpenClaw CLI。" : "首次安装会先检查这台机器的前置环境，并只补齐真正缺失的依赖。"}</p>
             </div>
           </div>
 
@@ -112,8 +111,8 @@ export default function StepEnvironmentPanel({ checks, facts, logs, tasks }: Ste
         <div className="environment-log-shell">
           <div className="environment-log-head">
             <strong>最近过程</strong>
-            <StatusBadge tone={bootstrapRunning ? "active" : openclawReady ? "ready" : "neutral"}>
-              {bootstrapRunning ? "进行中" : openclawReady ? "已完成" : "待开始"}
+            <StatusBadge tone={bootstrapRunning ? "active" : dependencyReady ? "ready" : "neutral"}>
+              {bootstrapRunning ? "进行中" : dependencyReady ? "已完成" : "待开始"}
             </StatusBadge>
           </div>
 

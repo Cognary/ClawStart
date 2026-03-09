@@ -22,7 +22,7 @@ export type SetupIntent =
 
 export type AppSurface = "installer" | "workspace";
 export type StepStatus = "done" | "current" | "upcoming";
-export type SetupStageId = "environment" | "install" | "config" | "onboarding" | "verify";
+export type SetupStageId = "environmentCheck" | "environmentRepair" | "install" | "config" | "onboarding" | "verify";
 export type InstallerSupportTab = "issues" | "output" | "tasks";
 export type WorkspacePanel = "diagnostics" | "terminal" | "config" | "logs";
 export type DiagnosticSeverity = "blocking" | "warning" | "info";
@@ -147,7 +147,7 @@ export interface TerminalControls {
 }
 
 export const launcherActionTitles: Record<LauncherAction, string> = {
-  bootstrapEnvironment: "自动准备环境",
+  bootstrapEnvironment: "自动补齐环境",
   installPortable: "安装 OpenClaw（本地模式）",
   installRecommended: "安装 OpenClaw（官方推荐）",
   applyInstallerSetup: "写入 OpenClaw 安装配置",

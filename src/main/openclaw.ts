@@ -28,7 +28,7 @@ const OPENCLAW_DIRNAME = ".openclaw";
 const OPENCLAW_CONFIG_FILENAME = "openclaw.json";
 
 const actionLabels: Record<LauncherAction, string> = {
-  bootstrapEnvironment: "自动准备环境",
+  bootstrapEnvironment: "自动补齐环境",
   installPortable: "安装 OpenClaw（无 root 本地模式）",
   installRecommended: "安装 OpenClaw（官方推荐脚本）",
   applyInstallerSetup: "写入 OpenClaw 安装配置",
@@ -1021,15 +1021,13 @@ async function installNodeOnWindows(
 
 async function bootstrapEnvironment() {
   return startManagedTask("bootstrapEnvironment", async ({ info, warn, runCommand }) => {
-    info("开始自动检测当前机器上的 Node.js、npm 和 OpenClaw。");
+    info("开始自动检测当前机器上的环境前置条件。");
 
     let node = await probeNode();
     let npm = await probeNpm();
-    let openclaw = await probeOpenclaw();
 
     info(`Node.js：${node.value || node.note || "未检测到"}`);
     info(`npm：${npm.value || npm.note || "未检测到"}`);
-    info(`OpenClaw：${openclaw.value || openclaw.note || "未检测到"}`);
 
     if (process.platform === "win32" && (!node.ok || !npm.ok)) {
       info("当前 Windows 环境缺少 Node.js 或 npm，开始自动补齐。");
@@ -1044,22 +1042,7 @@ async function bootstrapEnvironment() {
       }
     }
 
-    if (!openclaw.ok) {
-      const installMode = process.platform === "win32" ? "官方推荐安装" : "本地可移植安装";
-      info(`开始${installMode} OpenClaw CLI。`);
-      const installResult = await runCommand(buildInstallCommand(process.platform !== "win32"));
-      if (installResult.code !== 0) {
-        throw new Error(toSingleLine(`${installResult.stderr}\n${installResult.stdout}`) || "OpenClaw 安装失败。");
-      }
-
-      openclaw = await probeOpenclaw();
-      info(`重新检测 OpenClaw：${openclaw.value || openclaw.note || "未检测到"}`);
-      if (!openclaw.ok) {
-        throw new Error("OpenClaw 安装任务已经跑完，但当前仍然没有检测到可用的 openclaw 命令。");
-      }
-    }
-
-    info("环境已准备完成，可以继续写入配置并进入 Onboarding。");
+    info("环境前置条件已准备完成，可以继续安装 OpenClaw CLI。");
   });
 }
 

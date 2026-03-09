@@ -82,9 +82,9 @@ function buildDiagnostics(params: {
       id: "missing-node",
       severity: "blocking",
       title: "缺少 Node.js",
-      body: "当前平台更依赖官方推荐安装路径，但系统里没有可用的 Node.js。先安装 Node.js，再重新检测或重跑安装。",
+      body: "当前平台更依赖官方推荐安装路径，但系统里没有可用的 Node.js。先自动补齐环境，再继续安装 OpenClaw CLI。",
       evidence: systemInfo.checks.node.note ? [systemInfo.checks.node.note] : undefined,
-      primaryAction: { intent: "refreshAll", label: "重新检测" },
+      primaryAction: { intent: "bootstrapEnvironment", label: "自动补齐环境" },
       secondaryAction: { intent: "openTerminalShell", label: "打开调试 Shell" },
     });
   }
@@ -94,9 +94,9 @@ function buildDiagnostics(params: {
       id: "missing-npm",
       severity: "blocking",
       title: "缺少 npm",
-      body: "OpenClaw 官方推荐安装路径需要 npm。先补齐 npm，再重新检测或重跑安装。",
+      body: "OpenClaw 官方推荐安装路径需要 npm。先自动补齐环境，再继续安装 OpenClaw CLI。",
       evidence: systemInfo.checks.npm.note ? [systemInfo.checks.npm.note] : undefined,
-      primaryAction: { intent: "refreshAll", label: "重新检测" },
+      primaryAction: { intent: "bootstrapEnvironment", label: "自动补齐环境" },
       secondaryAction: { intent: "openTerminalShell", label: "打开调试 Shell" },
     });
   }
@@ -249,15 +249,20 @@ function buildDiagnostics(params: {
 }
 
 function getCurrentStepId(params: {
+  envReady: boolean;
   installed: boolean;
   configReady: boolean;
   onboardingComplete: boolean;
   doctorVerified: boolean;
 }): SetupStageId {
-  const { installed, configReady, onboardingComplete, doctorVerified } = params;
+  const { envReady, installed, configReady, onboardingComplete, doctorVerified } = params;
+
+  if (!envReady) {
+    return "environmentRepair";
+  }
 
   if (!installed) {
-    return "environment";
+    return "install";
   }
 
   if (!configReady) {
@@ -303,15 +308,21 @@ function getInstallerFactCards(params: {
   } = params;
 
   switch (currentStepId) {
-    case "environment":
+    case "environmentCheck":
       return [
-        { label: "安装方式", value: installActionTitle, detail: systemInfo.recommendedInstallMode === "portable" ? "默认优先本地可移植安装。" : "当前平台建议走官方推荐安装。" },
+        { label: "当前平台", value: platformLabel(systemInfo.platform), detail: "先确认系统和安装模式，再决定是否需要补环境。" },
+        { label: "安装方式", value: installActionTitle, detail: systemInfo.recommendedInstallMode === "portable" ? "当前平台优先本地可移植安装。" : "当前平台建议走官方推荐安装。" },
+        { label: "当前 Shell", value: systemInfo.shell, detail: "后续调试 Shell 会复用这个环境。" },
+      ];
+    case "environmentRepair":
+      return [
         { label: "Node.js", value: systemInfo.checks.node.value || checkStateLabel(systemInfo.checks.node.ok), detail: systemInfo.checks.node.note || "缺失时会在这一步自动补齐。" },
         { label: "npm", value: systemInfo.checks.npm.value || checkStateLabel(systemInfo.checks.npm.ok), detail: systemInfo.checks.npm.note || "通常会跟随 Node.js 一起补齐。" },
+        { label: "当前动作", value: "自动补齐环境", detail: "这里只处理前置条件，不在这一步安装 OpenClaw CLI。" },
       ];
     case "install":
       return [
-        { label: "推荐安装", value: installActionTitle, detail: "当前阶段只做 CLI 安装，不引入其他维护信息。" },
+        { label: "推荐安装", value: installActionTitle, detail: "当前阶段只做 OpenClaw CLI 安装，不引入配置和维护信息。" },
         { label: "当前检测", value: openclawLabel, detail: openclawNote },
         { label: "安装位置", value: systemInfo.checks.portableInstall.path || "~/.openclaw/bin/openclaw", detail: "安装完成后会自动进入配置步骤。" },
       ];
@@ -340,6 +351,7 @@ function createSteps(params: {
   currentStepId: SetupStageId;
   installActionId: SetupIntent;
   installActionTitle: string;
+  envReady: boolean;
   configReady: boolean;
   installed: boolean;
   configState: ConfigState;
@@ -348,12 +360,16 @@ function createSteps(params: {
   onboardingComplete: boolean;
   dashboardUrl: string;
 }): StepCard[] {
-  const { currentStepId, installActionId, installActionTitle, configReady, installed, configState, workspacePath, doctorVerified, onboardingComplete, dashboardUrl } =
+  const { currentStepId, installActionId, installActionTitle, envReady, configReady, installed, configState, workspacePath, doctorVerified, onboardingComplete, dashboardUrl } =
     params;
-  const order: SetupStageId[] = ["environment", "install", "config", "onboarding", "verify"];
+  const order: SetupStageId[] = ["environmentCheck", "environmentRepair", "install", "config", "onboarding", "verify"];
   const currentIndex = order.indexOf(currentStepId);
 
   const statusFor = (id: SetupStageId) => {
+    if (id === "environmentCheck") {
+      return "done" as const;
+    }
+
     const index = order.indexOf(id);
     if (index < currentIndex || (doctorVerified && id === "verify")) {
       return "done" as const;
@@ -366,31 +382,42 @@ function createSteps(params: {
 
   const steps: StepCard[] = [
     {
-      id: "environment",
+      id: "environmentCheck",
       order: 1,
       label: "Step 1",
-      title: "自动准备环境",
-      description: "先检测环境，再自动补齐缺失的依赖和 OpenClaw CLI。",
-      status: statusFor("environment"),
+      title: "检查环境",
+      description: "先确认系统、Shell 和运行前置条件。",
+      status: "done",
+      primaryIntent: "refreshAll",
+      primaryLabel: "重新检测",
+      completionHint: "环境已经检查完成，下一步决定是否需要自动补齐。",
+    },
+    {
+      id: "environmentRepair",
+      order: 2,
+      label: "Step 2",
+      title: "自动补齐环境",
+      description: envReady ? "当前机器的前置环境已经齐了，可以直接继续安装 OpenClaw CLI。" : "缺少的 Node.js / npm 会在这一步自动补齐。",
+      status: statusFor("environmentRepair"),
       primaryIntent: "bootstrapEnvironment",
-      primaryLabel: "自动检测并安装",
-      completionHint: "缺少的环境会自动补齐，完成后直接进入配置步骤。",
+      primaryLabel: "自动补齐环境",
+      completionHint: envReady ? "前置环境已经齐了，继续安装 OpenClaw CLI。" : "缺少的环境会自动补齐，完成后进入 OpenClaw CLI 安装。",
     },
     {
       id: "install",
-      order: 2,
-      label: "Step 2",
-      title: "手动重试 CLI",
-      description: installed ? "已经检测到 openclaw，可继续下一步。" : `如果自动准备失败，再用“${installActionTitle}”单独重试 CLI 安装。`,
+      order: 3,
+      label: "Step 3",
+      title: "安装 OpenClaw CLI",
+      description: installed ? "已经检测到 openclaw，可继续下一步。" : `这一步只安装 OpenClaw CLI。默认使用“${installActionTitle}”。`,
       status: statusFor("install"),
       primaryIntent: installActionId,
       primaryLabel: installActionTitle,
-      completionHint: "这里只作为兜底重试入口。",
+      completionHint: "CLI 安装完成后再进入首次配置。",
     },
     {
       id: "config",
-      order: 3,
-      label: "Step 3",
+      order: 4,
+      label: "Step 4",
       title: "写入 OpenClaw",
       description: configReady ? `当前 workspace 指向 ${workspacePath}。` : "填写安装字段，并一次性写入 OpenClaw 向导。",
       status: statusFor("config"),
@@ -400,9 +427,9 @@ function createSteps(params: {
     },
     {
       id: "onboarding",
-      order: 4,
-      label: "Step 4",
-      title: "补充 Onboarding",
+      order: 5,
+      label: "Step 5",
+      title: "完成 Onboarding",
       description: onboardingComplete
         ? "基础 Onboarding 已完成，可以继续验证。"
         : "如需补充认证、渠道或 Skills 细节，可继续应用内向导。",
@@ -413,8 +440,8 @@ function createSteps(params: {
     },
     {
       id: "verify",
-      order: 5,
-      label: "Step 5",
+      order: 6,
+      label: "Step 6",
       title: "验证并完成安装",
       description: doctorVerified ? "最近一次 Doctor / Status 已成功完成。" : "运行 Doctor / Status 做最终验证。",
       status: doctorVerified ? "done" : statusFor("verify"),
@@ -425,6 +452,14 @@ function createSteps(params: {
   ];
 
   return steps.map((step) => {
+    if (step.id === "environmentRepair" && envReady) {
+      return {
+        ...step,
+        primaryIntent: "refreshAll",
+        primaryLabel: "重新检测",
+      };
+    }
+
     if (step.id === "install") {
       return {
         ...step,
@@ -449,6 +484,8 @@ export function deriveAppModel(params: {
 }): DerivedAppModel {
   const { systemInfo, configState, appUpdateState, terminalSessions, activeTerminalId, terminalBuffers, logs, preferredSurface } = params;
   const installAction = getInstallAction(systemInfo);
+  const envReady =
+    systemInfo.recommendedInstallMode === "portable" || (systemInfo.checks.node.ok && systemInfo.checks.npm.ok);
   const installed = systemInfo.checks.openclaw.ok;
   const configReady = configState.exists && configState.valid && Boolean(configState.summary.workspace);
   const successfulActions = new Set(
@@ -464,11 +501,12 @@ export function deriveAppModel(params: {
   const gatewayRunning = systemInfo.services.gateway.ok;
   const canOperate = installed && configReady && doctorVerified;
   const surface = canOperate && preferredSurface === "workspace" ? "workspace" : "installer";
-  const currentStepId = getCurrentStepId({ installed, configReady, onboardingComplete, doctorVerified });
+  const currentStepId = getCurrentStepId({ envReady, installed, configReady, onboardingComplete, doctorVerified });
   const steps = createSteps({
     currentStepId,
     installActionId: installAction.id,
     installActionTitle: installAction.title,
+    envReady,
     configReady,
     installed,
     configState,
@@ -499,14 +537,16 @@ export function deriveAppModel(params: {
   const openclawNote = systemInfo.checks.openclaw.note || "安装完成后会自动进入配置步骤。";
 
   const installerPrimaryActionMap: Record<SetupStageId, { intent: SetupIntent; label: string }> = {
-    environment: { intent: "bootstrapEnvironment", label: "自动检测并安装" },
+    environmentCheck: { intent: "refreshAll", label: "重新检测" },
+    environmentRepair: { intent: "bootstrapEnvironment", label: "自动补齐环境" },
     install: { intent: installAction.id, label: installAction.title },
     config: { intent: "applyInstallerSetup", label: "一键写入 OpenClaw" },
     onboarding: { intent: "openTerminalOnboarding", label: "开始 Onboarding" },
     verify: { intent: doctorVerified ? "openDashboardUrl" : "runDoctor", label: doctorVerified ? "打开 Dashboard" : "运行 Doctor" },
   };
   const installerSecondaryActionMap: Record<SetupStageId, { intent: SetupIntent; label: string }> = {
-    environment: { intent: "openTerminalShell", label: "打开调试 Shell" },
+    environmentCheck: { intent: "openTerminalShell", label: "打开调试 Shell" },
+    environmentRepair: { intent: "openTerminalShell", label: "打开调试 Shell" },
     install: { intent: "openTerminalShell", label: "打开调试 Shell" },
     config: { intent: "revealConfigPath", label: "打开配置位置" },
     onboarding: { intent: "openTerminalShell", label: "打开调试 Shell" },
@@ -524,8 +564,6 @@ export function deriveAppModel(params: {
     checks: [
       { label: "Node.js", probe: systemInfo.checks.node },
       { label: "npm", probe: systemInfo.checks.npm },
-      { label: "openclaw", probe: systemInfo.checks.openclaw },
-      { label: "本地安装目录", probe: systemInfo.checks.portableInstall },
     ],
     diagnostics,
     highlightedDiagnostics,

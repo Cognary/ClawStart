@@ -489,9 +489,10 @@ export default function App() {
       return;
     }
 
-    const installed = systemInfo.checks.openclaw.ok;
+    const envReady =
+      systemInfo.recommendedInstallMode === "portable" || (systemInfo.checks.node.ok && systemInfo.checks.npm.ok);
     const bootstrapRunning = systemInfo.tasks.some((task) => task.action === "bootstrapEnvironment");
-    if (installed || bootstrapRunning || autoBootstrapTriggeredRef.current) {
+    if (envReady || bootstrapRunning || autoBootstrapTriggeredRef.current) {
       return;
     }
 
@@ -614,7 +615,7 @@ export default function App() {
       if (state === "busy") {
         if (isLauncherIntent(intent)) {
           return intent === "bootstrapEnvironment"
-            ? "检测并安装中..."
+            ? "补齐环境中..."
             : intent === "installPortable" || intent === "installRecommended" || intent === "upgradeOpenclaw"
             ? "执行中..."
             : intent === "applyInstallerSetup"
@@ -671,7 +672,7 @@ export default function App() {
           return "已写入";
         }
         if (intent === "bootstrapEnvironment") {
-          return "已准备完成";
+          return "已补齐";
         }
         if (intent === "loginOpenaiCodex") {
           return "重新打开 Codex 登录";

@@ -70,7 +70,7 @@ export default function InstallerShell({
           showActions={model.currentStep.id !== "config"}
         />
 
-        {model.currentStep.id === "environment" ? (
+        {model.currentStep.id === "environmentRepair" ? (
           <StepEnvironmentPanel
             checks={model.checks}
             facts={model.installerFactCards}
@@ -78,7 +78,7 @@ export default function InstallerShell({
             tasks={tasks}
           />
         ) : null}
-        {model.currentStep.id === "install" ? <StepInstallPanel facts={model.installerFactCards} /> : null}
+        {model.currentStep.id === "install" ? <StepInstallPanel facts={model.installerFactCards} logs={model.logs} tasks={tasks} /> : null}
         {model.currentStep.id === "config" ? (
           <SectionCard
             eyebrow="Config"
