@@ -248,17 +248,12 @@ function buildDiagnostics(params: {
 }
 
 function getCurrentStepId(params: {
-  envReady: boolean;
   installed: boolean;
   configReady: boolean;
   onboardingComplete: boolean;
   doctorVerified: boolean;
 }): SetupStageId {
-  const { envReady, installed, configReady, onboardingComplete, doctorVerified } = params;
-
-  if (!envReady) {
-    return "environment";
-  }
+  const { installed, configReady, onboardingComplete, doctorVerified } = params;
 
   if (!installed) {
     return "install";
@@ -374,11 +369,11 @@ function createSteps(params: {
       order: 1,
       label: "Step 1",
       title: "检查环境",
-      description: "确认安装前置条件是否满足。",
+      description: "自动检测当前机器上的 Node.js、npm 和 OpenClaw 状态。",
       status: statusFor("environment"),
       primaryIntent: "refreshAll",
       primaryLabel: "重新检测",
-      completionHint: "Node.js / npm 或本地安装能力准备好。",
+      completionHint: "这里只负责自动检测，不会阻塞后面的安装动作。",
     },
     {
       id: "install",
@@ -453,8 +448,6 @@ export function deriveAppModel(params: {
 }): DerivedAppModel {
   const { systemInfo, configState, appUpdateState, terminalSessions, activeTerminalId, terminalBuffers, logs, preferredSurface } = params;
   const installAction = getInstallAction(systemInfo);
-  const envReady =
-    systemInfo.recommendedInstallMode === "portable" || (systemInfo.checks.node.ok && systemInfo.checks.npm.ok);
   const installed = systemInfo.checks.openclaw.ok;
   const configReady = configState.exists && configState.valid && Boolean(configState.summary.workspace);
   const successfulActions = new Set(
@@ -470,7 +463,7 @@ export function deriveAppModel(params: {
   const gatewayRunning = systemInfo.services.gateway.ok;
   const canOperate = installed && configReady && doctorVerified;
   const surface = canOperate && preferredSurface === "workspace" ? "workspace" : "installer";
-  const currentStepId = getCurrentStepId({ envReady, installed, configReady, onboardingComplete, doctorVerified });
+  const currentStepId = getCurrentStepId({ installed, configReady, onboardingComplete, doctorVerified });
   const steps = createSteps({
     currentStepId,
     installActionId: installAction.id,

@@ -213,8 +213,6 @@ export default function App() {
       return;
     }
 
-    const envReady =
-      systemInfo.recommendedInstallMode === "portable" || (systemInfo.checks.node.ok && systemInfo.checks.npm.ok);
     const installed = systemInfo.checks.openclaw.ok;
     const ready = configState.exists && configState.valid && Boolean(configState.summary.workspace);
     const verified = successfulActions.has("runDoctor") || successfulActions.has("runStatus");
@@ -222,11 +220,11 @@ export default function App() {
       (session) => session.kind === "onboarding" && (session.running || session.exitCode === 0),
     );
 
-    if (!envReady || !installed || !ready || !verified) {
+    if (!installed || !ready || !verified) {
       setWorkspacePanel("diagnostics");
     }
 
-    if (!envReady || !installed || !ready || (!onboardingSession && !verified)) {
+    if (!installed || !ready || (!onboardingSession && !verified)) {
       setInstallerSupportTab("issues");
       return;
     }
