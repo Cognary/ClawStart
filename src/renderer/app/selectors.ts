@@ -225,12 +225,23 @@ function buildDiagnostics(params: {
 
   if (systemInfo.checks.openclaw.ok && configReady && !onboardingSession && !doctorVerified) {
     addDiagnostic({
+      id: "next-onboarding",
+      severity: "info",
+      title: "下一步先完成 Onboarding",
+      body: "OpenClaw CLI 和基础配置已经就绪，下一步先在应用内完成 Onboarding，再进入最终验证。",
+      primaryAction: { intent: "openTerminalOnboarding", label: "开始 Onboarding" },
+      secondaryAction: { intent: "openTerminalShell", label: "打开调试 Shell" },
+    });
+  }
+
+  if (onboardingSession && !onboardingSession.running && onboardingSession.exitCode === 0 && !doctorVerified) {
+    addDiagnostic({
       id: "next-doctor",
       severity: "info",
-      title: "建议先跑一次 Doctor",
-      body: "安装和配置已经差不多就绪，现在最有价值的是先跑 openclaw doctor，把 PATH、配置和网络问题一次性扫出来。",
+      title: "Onboarding 已完成，下一步做最终验证",
+      body: "现在最有价值的是跑一次 openclaw doctor，再用 status 做最终确认。",
       primaryAction: { intent: "runDoctor", label: "运行 Doctor" },
-      secondaryAction: { intent: "openTerminalOnboarding", label: "打开应用内 Onboarding" },
+      secondaryAction: { intent: "runStatus", label: "查看 Status" },
     });
   }
 
@@ -334,14 +345,14 @@ function getInstallerFactCards(params: {
     case "config":
       return [
         { label: "配置文件", value: configState.path, detail: "ClawStart 会调用官方 onboard，再补充写入搜索、渠道和维护默认项。" },
-        { label: "workspace", value: configState.summary.workspace || workspacePath, detail: "首次安装优先把 workspace 和 gateway 定好。" },
-        { label: "Dashboard", value: dashboardUrl, detail: "写入成功并验证通过后，这个地址会成为主要入口。" },
+        { label: "workspace", value: configState.summary.workspace || workspacePath, detail: "这一步只先把首次使用真正需要的设置写进去。" },
+        { label: "下一步", value: "完成 Onboarding", detail: "配置写入成功后，下一步进入应用内 Onboarding。" },
       ];
     case "onboarding":
       return [
-        { label: "终端状态", value: onboardingSession?.running ? "进行中" : onboardingSession ? "已打开过" : "尚未开始", detail: "这一步只在需要补充交互设置时使用。" },
-        { label: "当前命令", value: "openclaw onboard", detail: "会沿用安装页里选好的 flow / mode / daemon / skills 选项。" },
-        { label: "调试入口", value: "应用内 Shell", detail: "只在需要排障时才使用。" },
+        { label: "终端状态", value: onboardingSession?.running ? "进行中" : onboardingSession ? "已完成或已退出" : "尚未开始", detail: "这一步专门完成官方交互式 Onboarding。" },
+        { label: "当前命令", value: "openclaw onboard", detail: "会沿用安装页里已经写入的 flow / mode / daemon / skills 选项。" },
+        { label: "完成后", value: "运行 Doctor / Status", detail: "Onboarding 完成后才进入最终验证。" },
       ];
       default:
       return [
@@ -501,10 +512,10 @@ export function deriveAppModel(params: {
     logs.some((entry) => entry.action === "bootstrapEnvironment");
   const doctorVerified = successfulActions.has("runDoctor") || successfulActions.has("runStatus");
   const onboardingSession =
-    terminalSessions.find((session) => session.kind === "onboarding" && (session.running || session.exitCode === 0)) || null;
+    terminalSessions.find((session) => session.kind === "onboarding" && (session.running || session.exitCode !== undefined)) || null;
   const shellSession =
     terminalSessions.find((session) => session.kind === "shell" && (session.running || session.exitCode === 0)) || null;
-  const onboardingComplete = Boolean(onboardingSession) || doctorVerified || successfulActions.has("applyInstallerSetup");
+  const onboardingComplete = Boolean(onboardingSession && onboardingSession.exitCode === 0) || doctorVerified;
   const dashboardRunning = systemInfo.services.dashboard.ok;
   const gatewayRunning = systemInfo.services.gateway.ok;
   const canOperate = installed && configReady && doctorVerified;

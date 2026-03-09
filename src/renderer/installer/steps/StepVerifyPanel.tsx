@@ -36,9 +36,14 @@ export default function StepVerifyPanel({ doctorVerified, facts, diagnostics }: 
       <section className="stage-panel">
         <div className="panel-heading">
           <p className="section-eyebrow">Most Important Issue</p>
-          <h3>当前最重要的问题</h3>
+          <h3>{doctorVerified ? "安装已经完成" : "最终验证提醒"}</h3>
         </div>
-        {topIssue ? (
+        {doctorVerified ? (
+          <div className="message-inline">
+            <strong>下一步进入维护工作台</strong>
+            <p>安装链路到这里结束。后续启动服务、改配置、看日志都进入维护界面处理。</p>
+          </div>
+        ) : topIssue ? (
           <article className={`diagnostic-item diagnostic-item-${topIssue.severity}`}>
             <h3>{topIssue.title}</h3>
             <p>{topIssue.body}</p>

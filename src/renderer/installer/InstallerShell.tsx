@@ -85,9 +85,9 @@ export default function InstallerShell({
         {model.currentStep.id === "install" ? <StepInstallPanel facts={model.installerFactCards} logs={model.logs} tasks={tasks} /> : null}
         {model.currentStep.id === "config" ? (
           <SectionCard
-            eyebrow="Config"
-            title="写入 OpenClaw"
-            description="只保留首次安装真正需要的字段。可选集成默认收起来，不再把所有配置同时摊开。"
+            eyebrow="Step 4"
+            title="首次配置"
+            description="这里只写入第一次使用真正需要的配置。高级项和维护项都留到工作台。"
           >
             <StepConfigPanel
               configState={model.configState}
@@ -99,9 +99,9 @@ export default function InstallerShell({
         ) : null}
         {model.currentStep.id === "onboarding" ? (
           <SectionCard
-            eyebrow="Interactive"
-            title="应用内 Onboarding"
-            description="终端只在这一步成为主舞台，不提前占据整个页面。"
+            eyebrow="Step 5"
+            title="完成 Onboarding"
+            description="这一页只完成官方交互式配对，不提前暴露验证和维护动作。"
           >
             <StepOnboardingPanel
               sessions={terminalSessions}

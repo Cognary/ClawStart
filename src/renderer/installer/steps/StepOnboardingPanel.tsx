@@ -14,7 +14,7 @@ export default function StepOnboardingPanel(props: StepOnboardingPanelProps) {
   return (
     <TerminalWorkspace
       title="应用内 Onboarding"
-      description="这一阶段只需要在应用内完成配对。调试 Shell 只在遇到 PATH、网络或权限问题时使用。"
+      description="这一步只完成官方 Onboarding 配对。完成后回到最后一步跑 Doctor / Status。"
       {...props}
     />
   );
