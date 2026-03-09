@@ -50,6 +50,7 @@ export default function App() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const deferredLogs = useDeferredValue(logs);
   const autoBootstrapTriggeredRef = useRef(false);
+  const autoInstallTriggeredRef = useRef(false);
 
   const refreshAll = useEffectEvent(async (forceConfigDraft = false, forceInstallerSetup = false) => {
     const [info, config, updateState, terminalSnapshot] = await Promise.all([
@@ -498,6 +499,26 @@ export default function App() {
 
     autoBootstrapTriggeredRef.current = true;
     void runIntent("bootstrapEnvironment");
+  }, [appUpdateState, configState, installerSetup, systemInfo]);
+
+  useEffect(() => {
+    if (!systemInfo || !configState || !appUpdateState || !installerSetup) {
+      return;
+    }
+
+    const envReady =
+      systemInfo.recommendedInstallMode === "portable" || (systemInfo.checks.node.ok && systemInfo.checks.npm.ok);
+    const installed = systemInfo.checks.openclaw.ok;
+    const installRunning = systemInfo.tasks.some(
+      (task) => task.action === "installPortable" || task.action === "installRecommended",
+    );
+
+    if (!envReady || installed || installRunning || autoInstallTriggeredRef.current) {
+      return;
+    }
+
+    autoInstallTriggeredRef.current = true;
+    void runIntent(systemInfo.recommendedInstallMode === "portable" ? "installPortable" : "installRecommended");
   }, [appUpdateState, configState, installerSetup, systemInfo]);
 
   if (!systemInfo || !configState || !appUpdateState || !installerSetup) {

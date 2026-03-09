@@ -250,12 +250,17 @@ function buildDiagnostics(params: {
 
 function getCurrentStepId(params: {
   envReady: boolean;
+  bootstrapAttempted: boolean;
   installed: boolean;
   configReady: boolean;
   onboardingComplete: boolean;
   doctorVerified: boolean;
 }): SetupStageId {
-  const { envReady, installed, configReady, onboardingComplete, doctorVerified } = params;
+  const { envReady, bootstrapAttempted, installed, configReady, onboardingComplete, doctorVerified } = params;
+
+  if (!envReady && !bootstrapAttempted) {
+    return "environmentCheck";
+  }
 
   if (!envReady) {
     return "environmentRepair";
@@ -491,6 +496,9 @@ export function deriveAppModel(params: {
   const successfulActions = new Set(
     logs.filter((entry) => entry.kind === "exit" && entry.code === 0).map((entry) => entry.action),
   );
+  const bootstrapAttempted =
+    systemInfo.tasks.some((task) => task.action === "bootstrapEnvironment") ||
+    logs.some((entry) => entry.action === "bootstrapEnvironment");
   const doctorVerified = successfulActions.has("runDoctor") || successfulActions.has("runStatus");
   const onboardingSession =
     terminalSessions.find((session) => session.kind === "onboarding" && (session.running || session.exitCode === 0)) || null;
@@ -501,7 +509,7 @@ export function deriveAppModel(params: {
   const gatewayRunning = systemInfo.services.gateway.ok;
   const canOperate = installed && configReady && doctorVerified;
   const surface = canOperate && preferredSurface === "workspace" ? "workspace" : "installer";
-  const currentStepId = getCurrentStepId({ envReady, installed, configReady, onboardingComplete, doctorVerified });
+  const currentStepId = getCurrentStepId({ envReady, bootstrapAttempted, installed, configReady, onboardingComplete, doctorVerified });
   const steps = createSteps({
     currentStepId,
     installActionId: installAction.id,

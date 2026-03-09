@@ -6,6 +6,7 @@ import InstallerSidebar from "./InstallerSidebar";
 import InstallerSupportPanel from "./InstallerSupportPanel";
 import StepHeader from "./StepHeader";
 import StepConfigPanel from "./steps/StepConfigPanel";
+import StepEnvironmentCheckPanel from "./steps/StepEnvironmentCheckPanel";
 import StepEnvironmentPanel from "./steps/StepEnvironmentPanel";
 import StepInstallPanel from "./steps/StepInstallPanel";
 import StepOnboardingPanel from "./steps/StepOnboardingPanel";
@@ -70,6 +71,9 @@ export default function InstallerShell({
           showActions={model.currentStep.id !== "config"}
         />
 
+        {model.currentStep.id === "environmentCheck" ? (
+          <StepEnvironmentCheckPanel checks={model.checks} facts={model.installerFactCards} />
+        ) : null}
         {model.currentStep.id === "environmentRepair" ? (
           <StepEnvironmentPanel
             checks={model.checks}
