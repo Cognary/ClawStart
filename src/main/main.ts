@@ -1,5 +1,6 @@
 import path from "node:path";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import log from "electron-log/main";
 import {
   applyInstallerSetup,
   getConfigState,
@@ -37,6 +38,24 @@ import {
 const isDev = process.argv.includes("--dev");
 const devServerUrl = "http://localhost:5173";
 
+function startupLogPath() {
+  return log.transports.file.getFile().path;
+}
+
+function errorText(error: unknown) {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}\n${error.stack || ""}`.trim();
+  }
+
+  return String(error);
+}
+
+function reportFatal(title: string, error: unknown) {
+  const message = `${errorText(error)}\n\n日志位置：${startupLogPath()}`;
+  log.error(title, error);
+  dialog.showErrorBox(title, message);
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -52,6 +71,10 @@ function createWindow() {
     },
   });
 
+  window.webContents.on("did-fail-load", (_event, code, description, url) => {
+    log.error("Renderer failed to load", { code, description, url });
+  });
+
   window.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -61,11 +84,21 @@ function createWindow() {
     void window.loadURL(devServerUrl);
     window.webContents.openDevTools({ mode: "detach" });
   } else {
-    void window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+    void window.loadFile(path.join(__dirname, "..", "dist", "index.html")).catch((error) => {
+      reportFatal("ClawStart 页面加载失败", error);
+    });
   }
 }
 
 app.whenReady().then(() => {
+  log.initialize();
+  log.info("ClawStart starting", {
+    version: app.getVersion(),
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    arch: process.arch,
+  });
+
   void initializeUpdater();
 
   ipcMain.handle("launcher:get-system-info", () => getSystemInfo());
@@ -103,6 +136,14 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+process.on("uncaughtException", (error) => {
+  reportFatal("ClawStart 启动异常", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  reportFatal("ClawStart 未处理的 Promise 异常", reason);
 });
 
 app.on("window-all-closed", () => {

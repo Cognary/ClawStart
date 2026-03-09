@@ -31,7 +31,6 @@
     "directories": {
       "output": "release"
     },
-    "artifactName": "${productName}-${os}-${arch}.${ext}",
     "win": {
       "target": [
         "portable",
