@@ -1,4 +1,5 @@
 export type LauncherAction =
+  | "bootstrapEnvironment"
   | "installPortable"
   | "installRecommended"
   | "applyInstallerSetup"

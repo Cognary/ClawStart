@@ -71,7 +71,12 @@ export default function InstallerShell({
         />
 
         {model.currentStep.id === "environment" ? (
-          <StepEnvironmentPanel checks={model.checks} facts={model.installerFactCards} />
+          <StepEnvironmentPanel
+            checks={model.checks}
+            facts={model.installerFactCards}
+            logs={model.logs}
+            tasks={tasks}
+          />
         ) : null}
         {model.currentStep.id === "install" ? <StepInstallPanel facts={model.installerFactCards} /> : null}
         {model.currentStep.id === "config" ? (

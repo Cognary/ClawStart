@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useEffectEvent, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useEffectEvent, useRef, useState } from "react";
 import type {
   ActionResponse,
   AppUpdateState,
@@ -49,6 +49,7 @@ export default function App() {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const deferredLogs = useDeferredValue(logs);
+  const autoBootstrapTriggeredRef = useRef(false);
 
   const refreshAll = useEffectEvent(async (forceConfigDraft = false, forceInstallerSetup = false) => {
     const [info, config, updateState, terminalSnapshot] = await Promise.all([
@@ -483,6 +484,21 @@ export default function App() {
     await runCommand(intent);
   }
 
+  useEffect(() => {
+    if (!systemInfo || !configState || !appUpdateState || !installerSetup) {
+      return;
+    }
+
+    const installed = systemInfo.checks.openclaw.ok;
+    const bootstrapRunning = systemInfo.tasks.some((task) => task.action === "bootstrapEnvironment");
+    if (installed || bootstrapRunning || autoBootstrapTriggeredRef.current) {
+      return;
+    }
+
+    autoBootstrapTriggeredRef.current = true;
+    void runIntent("bootstrapEnvironment");
+  }, [appUpdateState, configState, installerSetup, systemInfo]);
+
   if (!systemInfo || !configState || !appUpdateState || !installerSetup) {
     return (
       <main className="loading-shell">
@@ -597,7 +613,9 @@ export default function App() {
 
       if (state === "busy") {
         if (isLauncherIntent(intent)) {
-          return intent === "installPortable" || intent === "installRecommended" || intent === "upgradeOpenclaw"
+          return intent === "bootstrapEnvironment"
+            ? "检测并安装中..."
+            : intent === "installPortable" || intent === "installRecommended" || intent === "upgradeOpenclaw"
             ? "执行中..."
             : intent === "applyInstallerSetup"
               ? "写入中..."
@@ -651,6 +669,9 @@ export default function App() {
         }
         if (intent === "applyInstallerSetup") {
           return "已写入";
+        }
+        if (intent === "bootstrapEnvironment") {
+          return "已准备完成";
         }
         if (intent === "loginOpenaiCodex") {
           return "重新打开 Codex 登录";

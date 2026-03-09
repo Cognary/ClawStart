@@ -28,6 +28,7 @@ const OPENCLAW_DIRNAME = ".openclaw";
 const OPENCLAW_CONFIG_FILENAME = "openclaw.json";
 
 const actionLabels: Record<LauncherAction, string> = {
+  bootstrapEnvironment: "自动准备环境",
   installPortable: "安装 OpenClaw（无 root 本地模式）",
   installRecommended: "安装 OpenClaw（官方推荐脚本）",
   applyInstallerSetup: "写入 OpenClaw 安装配置",
@@ -44,7 +45,12 @@ interface CommandSpec {
   env?: NodeJS.ProcessEnv;
 }
 
-const tasks = new Map<string, { meta: RunningTask; child: ChildProcessWithoutNullStreams }>();
+interface TaskEntry {
+  meta: RunningTask;
+  child?: ChildProcessWithoutNullStreams;
+}
+
+const tasks = new Map<string, TaskEntry>();
 
 function broadcast(event: TaskEvent) {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -76,6 +82,20 @@ function expandHome(targetPath: string) {
 
 function portableBinDir() {
   return path.join(os.homedir(), OPENCLAW_DIRNAME, "bin");
+}
+
+function windowsNodePathCandidates() {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const candidates = [
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, "nodejs") : undefined,
+    process.env["ProgramFiles(x86)"] ? path.join(process.env["ProgramFiles(x86)"], "nodejs") : undefined,
+    process.env.LocalAppData ? path.join(process.env.LocalAppData, "Programs", "nodejs") : undefined,
+  ].filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(candidates));
 }
 
 function portableBinaryPath() {
@@ -344,8 +364,8 @@ function renderStarterConfig() {
 `;
 }
 
-function buildEnv() {
-  const pathEntries = [portableBinDir(), process.env.PATH || ""];
+function buildEnv(extraPathEntries: string[] = []) {
+  const pathEntries = [portableBinDir(), ...windowsNodePathCandidates(), ...extraPathEntries, process.env.PATH || ""];
 
   return {
     ...process.env,
@@ -380,11 +400,11 @@ async function ensureParentDirectory(targetPath: string) {
 
 async function commandExists(command: string) {
   if (process.platform === "win32") {
-    const result = await runCapture("cmd.exe", ["/c", "where", command]);
+    const result = await runCapture("cmd.exe", ["/c", "where", command], buildEnv());
     return result.code === 0;
   }
 
-  const result = await runShellCapture(`command -v ${command} >/dev/null 2>&1`);
+  const result = await runShellCapture(`command -v ${command} >/dev/null 2>&1`, buildEnv());
   return result.code === 0;
 }
 
@@ -426,28 +446,29 @@ async function runCapture(file: string, args: string[], env?: NodeJS.ProcessEnv)
   });
 }
 
-async function runShellCapture(command: string) {
+async function runShellCapture(command: string, env?: NodeJS.ProcessEnv) {
   const shellSpec = getShellExecutable();
-  return await runCapture(shellSpec.file, [...shellSpec.args, command]);
+  return await runCapture(shellSpec.file, [...shellSpec.args, command], env);
 }
 
 async function locateOpenclawFromPath() {
   if (process.platform === "win32") {
     const result = await runShellCapture(
       "(Get-Command openclaw -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source) -join \"`n\"",
+      buildEnv(),
     );
 
     const located = toSingleLine(result.stdout);
     return located || undefined;
   }
 
-  const result = await runShellCapture("command -v openclaw || true");
+  const result = await runShellCapture("command -v openclaw || true", buildEnv());
   const located = toSingleLine(result.stdout);
   return located || undefined;
 }
 
 async function locateOpenclawFromNpmPrefix() {
-  const prefix = await runShellCapture("npm config get prefix");
+  const prefix = await runShellCapture("npm config get prefix", buildEnv());
   const base = toSingleLine(prefix.stdout);
   if (!base) {
     return undefined;
@@ -488,10 +509,10 @@ async function probeVersion(command: string, args = ["--version"], env?: NodeJS.
 
 async function probeNode() {
   if (process.platform === "win32") {
-    return await probeVersion("node", ["-v"]);
+    return await probeVersion("node", ["-v"], buildEnv());
   }
 
-  const result = await runShellCapture("node -v");
+  const result = await runShellCapture("node -v", buildEnv());
   const output = toSingleLine(`${result.stdout}\n${result.stderr}`);
   if (result.code === 0 && output) {
     return { ok: true, value: output };
@@ -502,10 +523,10 @@ async function probeNode() {
 
 async function probeNpm() {
   if (process.platform === "win32") {
-    return await probeVersion("npm", ["-v"]);
+    return await probeVersion("npm", ["-v"], buildEnv());
   }
 
-  const result = await runShellCapture("npm -v");
+  const result = await runShellCapture("npm -v", buildEnv());
   const output = toSingleLine(`${result.stdout}\n${result.stderr}`);
   if (result.code === 0 && output) {
     return { ok: true, value: output };
@@ -563,6 +584,109 @@ function createTask(action: LauncherAction) {
     action,
     label: actionLabels[action],
     startedAt: Date.now(),
+  };
+}
+
+function emitTaskEvent(taskId: string, action: LauncherAction, kind: TaskEvent["kind"], data?: string, code?: number | null) {
+  broadcast({
+    taskId,
+    action,
+    kind,
+    data,
+    code,
+  });
+}
+
+async function runTaskCommand(taskId: string, action: LauncherAction, spec: CommandSpec) {
+  return await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
+    const child = spawn(spec.file, spec.args, {
+      env: spec.env,
+    });
+
+    const entry = tasks.get(taskId);
+    if (entry) {
+      entry.child = child;
+    }
+
+    let stdout = "";
+    let stderr = "";
+
+    emitTaskEvent(taskId, action, "stdout", `$ ${[spec.file, ...spec.args].join(" ")}`);
+
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      stdout += text;
+      emitTaskEvent(taskId, action, "stdout", text);
+    });
+
+    child.stderr.on("data", (chunk) => {
+      const text = chunk.toString();
+      stderr += text;
+      emitTaskEvent(taskId, action, "stderr", text);
+    });
+
+    child.on("error", (error) => {
+      const current = tasks.get(taskId);
+      if (current?.child === child) {
+        current.child = undefined;
+      }
+
+      resolve({
+        code: -1,
+        stdout,
+        stderr: error.message,
+      });
+    });
+
+    child.on("close", (code) => {
+      const current = tasks.get(taskId);
+      if (current?.child === child) {
+        current.child = undefined;
+      }
+
+      resolve({
+        code,
+        stdout,
+        stderr,
+      });
+    });
+  });
+}
+
+function startManagedTask(
+  action: LauncherAction,
+  runner: (context: {
+    taskId: string;
+    info: (message: string) => void;
+    warn: (message: string) => void;
+    runCommand: (spec: CommandSpec) => Promise<{ code: number | null; stdout: string; stderr: string }>;
+  }) => Promise<void>,
+): ActionResponse {
+  const meta = createTask(action);
+  tasks.set(meta.id, { meta });
+
+  emitTaskEvent(meta.id, action, "start", actionLabels[action]);
+
+  void runner({
+    taskId: meta.id,
+    info: (message) => emitTaskEvent(meta.id, action, "stdout", message),
+    warn: (message) => emitTaskEvent(meta.id, action, "stderr", message),
+    runCommand: (spec) => runTaskCommand(meta.id, action, spec),
+  })
+    .then(() => {
+      tasks.delete(meta.id);
+      emitTaskEvent(meta.id, action, "exit", "任务结束", 0);
+    })
+    .catch((error) => {
+      tasks.delete(meta.id);
+      emitTaskEvent(meta.id, action, "error", error instanceof Error ? error.message : String(error));
+      emitTaskEvent(meta.id, action, "exit", "任务退出，状态码 1", 1);
+    });
+
+  return {
+    ok: true,
+    message: actionLabels[action],
+    taskId: meta.id,
   };
 }
 
@@ -809,6 +933,134 @@ async function buildUpgradeCommand() {
   const portablePath = portableBinaryPath();
   const usePortable = !openclawPath ? process.platform !== "win32" : openclawPath === portablePath;
   return buildInstallCommand(usePortable);
+}
+
+async function resolveLatestWindowsNodeMsi() {
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  const token = `win-${arch}-msi`;
+  const response = await fetch("https://nodejs.org/dist/index.json");
+
+  if (!response.ok) {
+    throw new Error(`无法获取 Node.js 版本列表（${response.status} ${response.statusText}）`);
+  }
+
+  const versions = (await response.json()) as Array<{
+    version?: string;
+    lts?: string | boolean;
+    files?: string[];
+  }>;
+
+  const match = versions.find((entry) => entry.lts && entry.version && Array.isArray(entry.files) && entry.files.includes(token));
+  if (!match?.version) {
+    throw new Error(`没有找到适用于 Windows ${arch} 的 Node.js LTS 安装包。`);
+  }
+
+  return {
+    version: match.version,
+    url: `https://nodejs.org/dist/${match.version}/node-${match.version}-${arch}.msi`,
+  };
+}
+
+async function installNodeOnWindows(
+  runCommand: (spec: CommandSpec) => Promise<{ code: number | null; stdout: string; stderr: string }>,
+  info: (message: string) => void,
+  warn: (message: string) => void,
+) {
+  if (await commandExists("winget")) {
+    info("检测到 winget，先尝试用 winget 安装 Node.js LTS。");
+    const wingetResult = await runCommand({
+      file: "winget",
+      args: [
+        "install",
+        "OpenJS.NodeJS.LTS",
+        "-e",
+        "--accept-package-agreements",
+        "--accept-source-agreements",
+        "--disable-interactivity",
+        "--silent",
+      ],
+      env: buildEnv(),
+    });
+
+    if (wingetResult.code === 0) {
+      info("winget 已完成 Node.js LTS 安装。");
+      return;
+    }
+
+    warn(`winget 安装 Node.js 失败，准备回退到官方 MSI。${toSingleLine(`${wingetResult.stderr}\n${wingetResult.stdout}`) || ""}`.trim());
+  } else {
+    info("当前机器没有可用的 winget，改用官方 MSI 安装 Node.js LTS。");
+  }
+
+  const latest = await resolveLatestWindowsNodeMsi();
+  info(`正在下载 Node.js ${latest.version} 安装包。`);
+
+  const response = await fetch(latest.url);
+  if (!response.ok) {
+    throw new Error(`下载 Node.js 安装包失败（${response.status} ${response.statusText}）`);
+  }
+
+  const downloadDir = path.join(os.tmpdir(), "ClawStart", "downloads");
+  await mkdir(downloadDir, { recursive: true });
+  const installerPath = path.join(downloadDir, `node-${latest.version}-${process.arch}.msi`);
+  await writeFile(installerPath, Buffer.from(await response.arrayBuffer()));
+  info(`Node.js 安装包已下载到 ${installerPath}`);
+
+  const installResult = await runCommand({
+    file: "msiexec.exe",
+    args: ["/i", installerPath, "/passive", "/norestart"],
+    env: buildEnv(),
+  });
+
+  if (![0, 3010, 1641].includes(installResult.code ?? -1)) {
+    throw new Error(toSingleLine(`${installResult.stderr}\n${installResult.stdout}`) || "Node.js MSI 安装失败。");
+  }
+
+  info("Node.js LTS 已通过官方安装包完成安装。");
+}
+
+async function bootstrapEnvironment() {
+  return startManagedTask("bootstrapEnvironment", async ({ info, warn, runCommand }) => {
+    info("开始自动检测当前机器上的 Node.js、npm 和 OpenClaw。");
+
+    let node = await probeNode();
+    let npm = await probeNpm();
+    let openclaw = await probeOpenclaw();
+
+    info(`Node.js：${node.value || node.note || "未检测到"}`);
+    info(`npm：${npm.value || npm.note || "未检测到"}`);
+    info(`OpenClaw：${openclaw.value || openclaw.note || "未检测到"}`);
+
+    if (process.platform === "win32" && (!node.ok || !npm.ok)) {
+      info("当前 Windows 环境缺少 Node.js 或 npm，开始自动补齐。");
+      await installNodeOnWindows(runCommand, info, warn);
+      node = await probeNode();
+      npm = await probeNpm();
+      info(`重新检测 Node.js：${node.value || node.note || "未检测到"}`);
+      info(`重新检测 npm：${npm.value || npm.note || "未检测到"}`);
+
+      if (!node.ok || !npm.ok) {
+        throw new Error("Node.js / npm 安装完成后仍无法检测到命令，请先关闭并重新打开 ClawStart 再试。");
+      }
+    }
+
+    if (!openclaw.ok) {
+      const installMode = process.platform === "win32" ? "官方推荐安装" : "本地可移植安装";
+      info(`开始${installMode} OpenClaw CLI。`);
+      const installResult = await runCommand(buildInstallCommand(process.platform !== "win32"));
+      if (installResult.code !== 0) {
+        throw new Error(toSingleLine(`${installResult.stderr}\n${installResult.stdout}`) || "OpenClaw 安装失败。");
+      }
+
+      openclaw = await probeOpenclaw();
+      info(`重新检测 OpenClaw：${openclaw.value || openclaw.note || "未检测到"}`);
+      if (!openclaw.ok) {
+        throw new Error("OpenClaw 安装任务已经跑完，但当前仍然没有检测到可用的 openclaw 命令。");
+      }
+    }
+
+    info("环境已准备完成，可以继续写入配置并进入 Onboarding。");
+  });
 }
 
 async function buildOpenclawCommand(args: string[]): Promise<CommandSpec | undefined> {
@@ -1080,7 +1332,7 @@ export async function stopTask(taskId: string): Promise<ActionResponse> {
     };
   }
 
-  current.child.kill("SIGTERM");
+  current.child?.kill("SIGTERM");
   tasks.delete(taskId);
 
   broadcast({
@@ -1114,7 +1366,7 @@ export async function stopTasksByActions(actions: LauncherAction[]) {
       continue;
     }
 
-    current.child.kill("SIGTERM");
+    current.child?.kill("SIGTERM");
     tasks.delete(taskId);
     stoppedCount += 1;
 
@@ -1138,6 +1390,10 @@ export async function runAction(action: LauncherAction): Promise<ActionResponse>
       ok: false,
       message: "请通过安装向导提交安装字段，而不是直接调用通用动作。",
     };
+  }
+
+  if (action === "bootstrapEnvironment") {
+    return await bootstrapEnvironment();
   }
 
   if (action === "installPortable") {

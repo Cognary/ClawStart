@@ -147,6 +147,7 @@ export interface TerminalControls {
 }
 
 export const launcherActionTitles: Record<LauncherAction, string> = {
+  bootstrapEnvironment: "自动准备环境",
   installPortable: "安装 OpenClaw（本地模式）",
   installRecommended: "安装 OpenClaw（官方推荐）",
   applyInstallerSetup: "写入 OpenClaw 安装配置",

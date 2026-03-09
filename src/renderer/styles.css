@@ -699,6 +699,143 @@ button:disabled {
   gap: 16px;
 }
 
+.environment-panel-main,
+.environment-panel-side {
+  display: grid;
+  gap: 16px;
+}
+
+.environment-hero {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.environment-hero.is-running {
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, rgba(200, 244, 94, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.environment-hero.is-ready {
+  border-color: var(--line-strong);
+}
+
+.environment-hero-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.environment-hero-head strong,
+.environment-phase strong,
+.environment-log-head strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.environment-orb {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 0 rgba(200, 244, 94, 0);
+}
+
+.environment-orb.is-running {
+  background: var(--accent);
+  animation: environment-pulse 1.6s ease-out infinite;
+}
+
+.environment-orb.is-ready {
+  background: var(--accent);
+}
+
+.environment-phase-list,
+.environment-log-list {
+  display: grid;
+  gap: 12px;
+}
+
+.environment-phase {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.environment-phase-mark {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.environment-phase-done .environment-phase-mark {
+  background: var(--accent);
+}
+
+.environment-phase-active .environment-phase-mark {
+  background: var(--accent);
+  animation: environment-pulse 1.6s ease-out infinite;
+}
+
+.environment-log-shell {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+
+.environment-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.environment-log-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.environment-log-item span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.environment-log-item-stderr,
+.environment-log-item-error {
+  border-color: var(--warning-line);
+}
+
+@keyframes environment-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(200, 244, 94, 0.28);
+  }
+
+  70% {
+    box-shadow: 0 0 0 12px rgba(200, 244, 94, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 244, 94, 0);
+  }
+}
+
 .workspace-panel-shell {
   min-height: 0;
   display: grid;

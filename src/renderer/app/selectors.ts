@@ -73,7 +73,8 @@ function buildDiagnostics(params: {
 
   const sources = gatherDiagnosticSources(logs, terminalSessions, terminalBuffers);
   const installRunning = systemInfo.tasks.some(
-    (task) => task.action === "installPortable" || task.action === "installRecommended",
+    (task) =>
+      task.action === "bootstrapEnvironment" || task.action === "installPortable" || task.action === "installRecommended",
   );
 
   if (systemInfo.recommendedInstallMode === "recommended" && !systemInfo.checks.node.ok) {
@@ -256,7 +257,7 @@ function getCurrentStepId(params: {
   const { installed, configReady, onboardingComplete, doctorVerified } = params;
 
   if (!installed) {
-    return "install";
+    return "environment";
   }
 
   if (!configReady) {
@@ -305,8 +306,8 @@ function getInstallerFactCards(params: {
     case "environment":
       return [
         { label: "安装方式", value: installActionTitle, detail: systemInfo.recommendedInstallMode === "portable" ? "默认优先本地可移植安装。" : "当前平台建议走官方推荐安装。" },
-        { label: "Node.js", value: systemInfo.checks.node.value || checkStateLabel(systemInfo.checks.node.ok), detail: systemInfo.checks.node.note || "推荐安装路径需要 Node.js。" },
-        { label: "npm", value: systemInfo.checks.npm.value || checkStateLabel(systemInfo.checks.npm.ok), detail: systemInfo.checks.npm.note || "推荐安装路径需要 npm。" },
+        { label: "Node.js", value: systemInfo.checks.node.value || checkStateLabel(systemInfo.checks.node.ok), detail: systemInfo.checks.node.note || "缺失时会在这一步自动补齐。" },
+        { label: "npm", value: systemInfo.checks.npm.value || checkStateLabel(systemInfo.checks.npm.ok), detail: systemInfo.checks.npm.note || "通常会跟随 Node.js 一起补齐。" },
       ];
     case "install":
       return [
@@ -368,23 +369,23 @@ function createSteps(params: {
       id: "environment",
       order: 1,
       label: "Step 1",
-      title: "检查环境",
-      description: "自动检测当前机器上的 Node.js、npm 和 OpenClaw 状态。",
+      title: "自动准备环境",
+      description: "先检测环境，再自动补齐缺失的依赖和 OpenClaw CLI。",
       status: statusFor("environment"),
-      primaryIntent: "refreshAll",
-      primaryLabel: "重新检测",
-      completionHint: "这里只负责自动检测，不会阻塞后面的安装动作。",
+      primaryIntent: "bootstrapEnvironment",
+      primaryLabel: "自动检测并安装",
+      completionHint: "缺少的环境会自动补齐，完成后直接进入配置步骤。",
     },
     {
       id: "install",
       order: 2,
       label: "Step 2",
-      title: "安装 CLI",
-      description: installed ? "已经检测到 openclaw，可继续下一步。" : `使用“${installActionTitle}”把 CLI 装到当前机器上。`,
+      title: "手动重试 CLI",
+      description: installed ? "已经检测到 openclaw，可继续下一步。" : `如果自动准备失败，再用“${installActionTitle}”单独重试 CLI 安装。`,
       status: statusFor("install"),
       primaryIntent: installActionId,
       primaryLabel: installActionTitle,
-      completionHint: "能检测到 openclaw 命令即可。",
+      completionHint: "这里只作为兜底重试入口。",
     },
     {
       id: "config",
@@ -498,7 +499,7 @@ export function deriveAppModel(params: {
   const openclawNote = systemInfo.checks.openclaw.note || "安装完成后会自动进入配置步骤。";
 
   const installerPrimaryActionMap: Record<SetupStageId, { intent: SetupIntent; label: string }> = {
-    environment: { intent: "refreshAll", label: "重新检测" },
+    environment: { intent: "bootstrapEnvironment", label: "自动检测并安装" },
     install: { intent: installAction.id, label: installAction.title },
     config: { intent: "applyInstallerSetup", label: "一键写入 OpenClaw" },
     onboarding: { intent: "openTerminalOnboarding", label: "开始 Onboarding" },
