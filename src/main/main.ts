@@ -1,4 +1,6 @@
+import os from "node:os";
 import path from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import log from "electron-log/main";
 import {
@@ -37,6 +39,18 @@ import {
 
 const isDev = process.argv.includes("--dev");
 const devServerUrl = "http://localhost:5173";
+const earlyLogFile = path.join(os.tmpdir(), "ClawStart-startup.log");
+
+function writeEarlyLog(message: string, error?: unknown) {
+  try {
+    mkdirSync(path.dirname(earlyLogFile), { recursive: true });
+    const timestamp = new Date().toISOString();
+    const suffix = error ? `\n${errorText(error)}` : "";
+    appendFileSync(earlyLogFile, `[${timestamp}] ${message}${suffix}\n`, "utf8");
+  } catch {
+    // Ignore logging failures; never block app startup on diagnostics.
+  }
+}
 
 function startupLogPath() {
   return log.transports.file.getFile().path;
@@ -51,12 +65,14 @@ function errorText(error: unknown) {
 }
 
 function reportFatal(title: string, error: unknown) {
+  writeEarlyLog(title, error);
   const message = `${errorText(error)}\n\n日志位置：${startupLogPath()}`;
   log.error(title, error);
   dialog.showErrorBox(title, message);
 }
 
 function createWindow() {
+  writeEarlyLog("Creating main window");
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -72,6 +88,7 @@ function createWindow() {
   });
 
   window.webContents.on("did-fail-load", (_event, code, description, url) => {
+    writeEarlyLog("Renderer failed to load", { code, description, url });
     log.error("Renderer failed to load", { code, description, url });
   });
 
@@ -84,13 +101,17 @@ function createWindow() {
     void window.loadURL(devServerUrl);
     window.webContents.openDevTools({ mode: "detach" });
   } else {
+    writeEarlyLog("Loading packaged renderer", path.join(__dirname, "..", "dist", "index.html"));
     void window.loadFile(path.join(__dirname, "..", "dist", "index.html")).catch((error) => {
       reportFatal("ClawStart 页面加载失败", error);
     });
   }
 }
 
+writeEarlyLog("Main process module loaded");
+
 app.whenReady().then(() => {
+  writeEarlyLog("app.whenReady resolved");
   log.initialize();
   log.info("ClawStart starting", {
     version: app.getVersion(),
@@ -100,6 +121,7 @@ app.whenReady().then(() => {
   });
 
   void initializeUpdater();
+  writeEarlyLog("Updater initialized");
 
   ipcMain.handle("launcher:get-system-info", () => getSystemInfo());
   ipcMain.handle("launcher:get-config-state", () => getConfigState());
