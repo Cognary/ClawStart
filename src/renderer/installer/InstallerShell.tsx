@@ -1,7 +1,6 @@
 import type { InstallerSetupPayload, RunningTask, TerminalSession } from "../../main/types";
 import type { DerivedAppModel, IntentControls, TerminalControls } from "../app/model";
 import IntentButton from "../shared/IntentButton";
-import SectionCard from "../shared/SectionCard";
 import StepConfigPanel from "./steps/StepConfigPanel";
 import StepEnvironmentCheckPanel from "./steps/StepEnvironmentCheckPanel";
 import StepEnvironmentPanel from "./steps/StepEnvironmentPanel";
@@ -65,17 +64,12 @@ export default function InstallerShell({
           <header className="wizard-card-header">
             <div>
               <h2>{model.currentStep.title}</h2>
-              <p>{model.currentStep.description}</p>
+              <p>{message}</p>
             </div>
             <span className="wizard-card-step">
               {model.currentStep.order} / {model.steps.length}
             </span>
           </header>
-
-          <div className="wizard-callout">
-            <strong>当前状态</strong>
-            <p>{message}</p>
-          </div>
 
           {model.currentStep.id === "environmentCheck" ? (
             <StepEnvironmentCheckPanel checks={model.checks} facts={model.installerFactCards} />
@@ -90,31 +84,17 @@ export default function InstallerShell({
           ) : null}
 
           {model.currentStep.id === "config" ? (
-            <SectionCard
-              eyebrow="Setup"
-              title="首次配置"
-              description="只写入第一次真正需要的配置，安装完成后再进控制台做维护级设置。"
-              className="wizard-embedded-card"
-            >
-              <StepConfigPanel configState={model.configState} setup={installerSetup} setSetup={setInstallerSetup} controls={controls} />
-            </SectionCard>
+            <StepConfigPanel configState={model.configState} setup={installerSetup} setSetup={setInstallerSetup} controls={controls} />
           ) : null}
 
           {model.currentStep.id === "onboarding" ? (
-            <SectionCard
-              eyebrow="Interactive"
-              title="完成 Onboarding"
-              description="这一页只做官方交互式配对，不提前暴露维护动作。"
-              className="wizard-embedded-card"
-            >
-              <StepOnboardingPanel
-                sessions={terminalSessions}
-                activeTerminal={model.activeTerminal}
-                activeBuffer={model.activeTerminalBuffer}
-                intentControls={controls}
-                terminalControls={terminalControls}
-              />
-            </SectionCard>
+            <StepOnboardingPanel
+              sessions={terminalSessions}
+              activeTerminal={model.activeTerminal}
+              activeBuffer={model.activeTerminalBuffer}
+              intentControls={controls}
+              terminalControls={terminalControls}
+            />
           ) : null}
 
           {model.currentStep.id === "verify" ? (
@@ -128,27 +108,6 @@ export default function InstallerShell({
             </div>
           ) : null}
 
-          {tasks.length > 0 ? (
-            <div className="wizard-inline-log">
-              <div className="wizard-inline-log-head">
-                <strong>当前任务</strong>
-                <span>{tasks.length} 个运行中</span>
-              </div>
-              <div className="wizard-inline-log-list">
-                {tasks.map((task) => (
-                  <article key={task.id} className="wizard-inline-log-item">
-                    <div>
-                      <strong>{task.label}</strong>
-                      <p>{new Date(task.startedAt).toLocaleTimeString()}</p>
-                    </div>
-                    <button className="ghost-button" disabled={busyTaskId === task.id} onClick={() => void onStopTask(task.id)}>
-                      {busyTaskId === task.id ? "停止中..." : "停止"}
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
       </div>
     </main>

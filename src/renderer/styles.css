@@ -202,7 +202,6 @@ button:disabled {
   white-space: nowrap;
 }
 
-.wizard-callout,
 .wizard-notice,
 .wizard-progress-card,
 .wizard-inline-log {
@@ -212,14 +211,12 @@ button:disabled {
   padding: 16px 18px;
 }
 
-.wizard-callout strong,
 .wizard-notice strong,
 .wizard-progress-card strong,
 .wizard-inline-log strong {
   font-family: var(--font-display);
 }
 
-.wizard-callout p,
 .wizard-notice p,
 .wizard-progress-card p {
   margin: 6px 0 0;
@@ -230,6 +227,17 @@ button:disabled {
 .wizard-step-content {
   display: grid;
   gap: 18px;
+}
+
+.wizard-copy-shell {
+  display: grid;
+  gap: 6px;
+}
+
+.wizard-copy-shell h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-family: var(--font-display);
 }
 
 .wizard-check-list,
@@ -291,6 +299,10 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.wizard-primary-actions-start {
+  justify-content: flex-start;
+}
+
 .wizard-embedded-card {
   border: none;
   border-radius: 0;
@@ -303,6 +315,10 @@ button:disabled {
 .wizard-embedded-card > .section-card-body {
   padding-left: 0;
   padding-right: 0;
+}
+
+.wizard-terminal-stage {
+  min-height: 360px;
 }
 
 .surface {

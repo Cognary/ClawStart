@@ -225,30 +225,18 @@ export default function StepConfigPanel({ configState, setup, setSetup, controls
 
   return (
     <div className="config-panel-shell wizard-setup-shell">
-      <div className="wizard-status-strip">
-        <article className="fact-card compact-fact-card">
-          <span>写入目标</span>
-          <strong>{configState.path}</strong>
-          <p>调用官方 `openclaw onboard`，成功后由 ClawStart 补充写回渠道和维护默认项。</p>
-        </article>
-        <article className="fact-card compact-fact-card">
-          <span>当前模式</span>
-          <strong>{setup.mode === "local" ? "Local Gateway" : "Remote Gateway"}</strong>
-          <p>{setup.flow === "quickstart" ? "QuickStart" : setup.flow === "advanced" ? "Advanced" : "Manual"} 流程。</p>
-        </article>
-        <article className="fact-card compact-fact-card">
-          <span>已选渠道</span>
-          <strong>{selectedChannels.length > 0 ? selectedChannels.join(" / ") : "暂未启用渠道"}</strong>
-          <p>{setup.skipChannels ? "首次安装会跳过官方渠道向导。" : "写入后会自动尝试启用这些渠道对应的 stock plugin。"}</p>
-        </article>
+      <div className="wizard-notice">
+        <strong>这一步会写入首次使用真正需要的配置</strong>
+        <p>
+          写入目标是 {configState.path}。先完成核心设置，再决定这次要不要启用搜索、渠道和 daemon。
+        </p>
       </div>
 
-      <section className="stage-panel wizard-panel">
-        <div className="panel-heading">
-          <p className="section-eyebrow">Substeps</p>
-          <h3>{currentSubstep.title}</h3>
-        </div>
+      <div className="wizard-copy-shell">
+        <p className="section-eyebrow">Substeps</p>
+        <h3>{currentSubstep.title}</h3>
         <p className="wizard-copy">{currentSubstep.description}</p>
+      </div>
 
         <div className="mini-steps">
           {configSubsteps.map((item, index) => {
@@ -1004,7 +992,6 @@ export default function StepConfigPanel({ configState, setup, setSetup, controls
             </button>
           )}
         </div>
-      </section>
     </div>
   );
 }
