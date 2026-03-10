@@ -1,5 +1,5 @@
 import type { InstallerSetupPayload, RunningTask, TerminalSession } from "../../main/types";
-import type { DerivedAppModel, InstallerSupportTab, IntentControls, TerminalControls, WorkspacePanel } from "./model";
+import type { DerivedAppModel, IntentControls, TerminalControls, WorkspacePanel } from "./model";
 import { updateStatusLabel, updateStatusTone } from "./model";
 import InstallerShell from "../installer/InstallerShell";
 import WorkspaceShell from "../workspace/WorkspaceShell";
@@ -20,8 +20,6 @@ interface AppShellProps {
   configDirty: boolean;
   installerSetup: InstallerSetupPayload;
   setInstallerSetup: (next: InstallerSetupPayload) => void;
-  installerSupportTab: InstallerSupportTab;
-  setInstallerSupportTab: (tab: InstallerSupportTab) => void;
   workspacePanel: WorkspacePanel;
   setWorkspacePanel: (panel: WorkspacePanel) => void;
   isUpdateDialogOpen: boolean;
@@ -127,8 +125,6 @@ export default function AppShell({
   configDirty,
   installerSetup,
   setInstallerSetup,
-  installerSupportTab,
-  setInstallerSupportTab,
   workspacePanel,
   setWorkspacePanel,
   isUpdateDialogOpen,
@@ -144,15 +140,12 @@ export default function AppShell({
           message={message}
           installerSetup={installerSetup}
           setInstallerSetup={setInstallerSetup}
-          supportTab={installerSupportTab}
-          setSupportTab={setInstallerSupportTab}
           controls={controls}
           terminalControls={terminalControls}
           terminalSessions={terminalSessions}
           tasks={tasks}
           busyTaskId={busyTaskId}
           onStopTask={onStopTask}
-          onOpenUpdates={openUpdateDialog}
         />
       ) : (
         <WorkspaceShell

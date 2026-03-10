@@ -16,7 +16,6 @@ import AppShell from "./app/AppShell";
 import {
   launcherActionTitles,
   type AppSurface,
-  type InstallerSupportTab,
   type IntentControls,
   type LogEntry,
   type SetupIntent,
@@ -36,7 +35,6 @@ export default function App() {
   const [appUpdateState, setAppUpdateState] = useState<AppUpdateState | null>(null);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [surfacePreference, setSurfacePreference] = useState<AppSurface>("installer");
-  const [installerSupportTab, setInstallerSupportTab] = useState<InstallerSupportTab>("issues");
   const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>("overview");
   const [configDraft, setConfigDraft] = useState("");
   const [configDirty, setConfigDirty] = useState(false);
@@ -226,12 +224,6 @@ export default function App() {
       setWorkspacePanel("overview");
     }
 
-    if (!installed || !ready || (!onboardingSession && !verified)) {
-      setInstallerSupportTab("issues");
-      return;
-    }
-
-    setInstallerSupportTab("output");
   }, [configState, successfulActions, systemInfo, terminalSessions]);
 
   async function runCommand(action: LauncherAction) {
@@ -744,8 +736,6 @@ export default function App() {
         setInstallerSetup(next);
         setInstallerSetupDirty(true);
       }}
-      installerSupportTab={installerSupportTab}
-      setInstallerSupportTab={setInstallerSupportTab}
       workspacePanel={workspacePanel}
       setWorkspacePanel={setWorkspacePanel}
       isUpdateDialogOpen={isUpdateDialogOpen}
