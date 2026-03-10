@@ -23,7 +23,7 @@ export default function InstallerSidebar({ model }: InstallerSidebarProps) {
       <section className="sidebar-panel hero-panel">
         <p className="section-eyebrow">ClawStart</p>
         <h1>OpenClaw 安装向导</h1>
-        <p className="hero-copy">左边只告诉你做到哪一步。右边只保留当前步骤需要的操作区。</p>
+        <p className="hero-copy">第一次打开只做安装这一件事。左边告诉你当前做到哪一步，右边只显示当前步骤需要的操作。</p>
         <div className="progress-shell">
           <div>
             <span>安装进度</span>
@@ -36,14 +36,15 @@ export default function InstallerSidebar({ model }: InstallerSidebarProps) {
         <div className="progress-track">
           <span style={{ width: `${model.progressPercent}%` }} />
         </div>
-        <div className="sidebar-pills">
+        <div className="summary-stack">
           {model.installerSidebarSummary.map((item) => (
-            <StatusBadge key={item.label} tone={item.value.includes("未") ? "warning" : "ready"}>
-              {item.label} · {item.value}
-            </StatusBadge>
+            <div key={item.label} className="summary-row">
+              <strong>{item.label}</strong>
+              <StatusBadge tone={item.value.includes("未") ? "warning" : "ready"}>{item.value}</StatusBadge>
+            </div>
           ))}
         </div>
-        <p className="support-copy">{model.currentStep.title}</p>
+        <p className="support-copy">当前阶段：{model.currentStep.title}</p>
       </section>
 
       <section className="sidebar-panel">

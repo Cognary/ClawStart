@@ -4,6 +4,7 @@ import StatusBadge from "../shared/StatusBadge";
 
 interface StepHeaderProps {
   step: StepCard;
+  totalSteps: number;
   summary: string;
   primaryAction: DiagnosticAction;
   secondaryAction: DiagnosticAction;
@@ -11,24 +12,36 @@ interface StepHeaderProps {
   showActions?: boolean;
 }
 
-export default function StepHeader({ step, summary, primaryAction, secondaryAction, controls, showActions = true }: StepHeaderProps) {
+export default function StepHeader({
+  step,
+  totalSteps,
+  summary,
+  primaryAction,
+  secondaryAction,
+  controls,
+  showActions = true,
+}: StepHeaderProps) {
   return (
-    <section className="stage-header">
+    <section className="stage-header installer-step-header">
       <div className="stage-header-copy">
         <div className="inline-meta">
           <p className="section-eyebrow">Current Step</p>
-          <StatusBadge tone={step.status === "done" ? "ready" : "active"}>{step.label}</StatusBadge>
+          <StatusBadge tone={step.status === "done" ? "ready" : "active"}>
+            {step.order} / {totalSteps}
+          </StatusBadge>
         </div>
         <h2>{step.title}</h2>
         <p>{step.description}</p>
-        <p className="support-copy">{summary}</p>
+        <div className="message-inline installer-step-summary">
+          <strong>完成这一页后会发生什么</strong>
+          <p>{summary}</p>
+        </div>
       </div>
 
       {showActions ? (
         <div className="stage-actions">
           <IntentButton intent={primaryAction.intent} fallbackLabel={primaryAction.label} variant="primary" {...controls} />
           <IntentButton intent={secondaryAction.intent} fallbackLabel={secondaryAction.label} {...controls} />
-          <IntentButton intent="refreshAll" fallbackLabel="重新检测" {...controls} />
         </div>
       ) : null}
     </section>

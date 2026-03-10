@@ -48,22 +48,25 @@ export default function InstallerShell({
       <InstallerSidebar model={model} />
 
       <section className="stage stage-installer">
-        <header className="surface-toolbar">
-          <div>
-            <p className="section-eyebrow">Setup</p>
-            <h2>{model.currentStep.label} · {model.currentStep.title}</h2>
+        <header className="surface-toolbar installer-toolbar">
+          <div className="installer-toolbar-copy">
+            <p className="section-eyebrow">Setup Wizard</p>
+            <h2>首次安装 OpenClaw</h2>
             <p className="support-copy">{message}</p>
           </div>
-          <div className="intent-row">
-            <button className="primary-button" onClick={onOpenUpdates}>
+          <div className="installer-toolbar-actions">
+            <button className="ghost-button" onClick={onOpenUpdates}>
               更新中心
             </button>
-            <IntentButton intent="refreshAll" fallbackLabel="刷新状态" {...controls} />
+            <button className="sidebar-text-button" onClick={() => void controls.executeIntent("refreshAll")}>
+              重新检测
+            </button>
           </div>
         </header>
 
         <StepHeader
           step={model.currentStep}
+          totalSteps={model.steps.length}
           summary={model.installerHeroSummary}
           primaryAction={model.installerPrimaryAction}
           secondaryAction={model.installerSecondaryAction}
@@ -117,7 +120,7 @@ export default function InstallerShell({
         ) : null}
 
         <details className="support-disclosure">
-          <summary>排障与最近输出</summary>
+          <summary>遇到问题时展开排障与最近输出</summary>
           <InstallerSupportPanel
             activeTab={supportTab}
             setActiveTab={setSupportTab}

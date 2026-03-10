@@ -357,6 +357,35 @@ button:disabled {
   padding: 22px 24px;
 }
 
+.installer-toolbar {
+  align-items: center;
+}
+
+.installer-toolbar-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.installer-toolbar-copy h2 {
+  margin: 0;
+}
+
+.installer-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.installer-step-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.installer-step-summary {
+  margin-top: 14px;
+}
+
 .workspace-status-bar {
   position: sticky;
   top: 0;
@@ -486,6 +515,11 @@ button:disabled {
   gap: 10px;
 }
 
+.installer-step-header .stage-actions {
+  align-self: stretch;
+  justify-content: flex-end;
+}
+
 .primary-button,
 .ghost-button {
   appearance: none;
@@ -548,6 +582,10 @@ button:disabled {
 .step-stage-grid,
 .modal-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.surface-installer .step-stage-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
 }
 
 .fact-grid,
@@ -1276,10 +1314,15 @@ button:disabled {
   padding: 16px 20px;
   color: var(--muted);
   font-weight: 600;
+  transition: color 160ms ease;
 }
 
 .support-disclosure > summary::-webkit-details-marker {
   display: none;
+}
+
+.support-disclosure > summary:hover {
+  color: var(--text);
 }
 
 .support-disclosure[open] > summary {
