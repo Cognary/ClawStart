@@ -20,24 +20,27 @@ interface ToggleCardProps {
 
 type ConfigSubstepId = "core" | "integrations" | "review";
 
-const configSubsteps: Array<{ id: ConfigSubstepId; label: string; title: string; description: string }> = [
+const configSubsteps: Array<{ id: ConfigSubstepId; label: string; title: string; description: string; short: string }> = [
   {
     id: "core",
     label: "1",
     title: "核心设置",
     description: "先决定模式、工作区、Gateway 和认证。",
+    short: "核心",
   },
   {
     id: "integrations",
     label: "2",
     title: "集成与运行",
     description: "只开启这次真的需要的搜索、渠道和运行方式。",
+    short: "集成",
   },
   {
     id: "review",
     label: "3",
     title: "确认写入",
     description: "确认摘要，然后一键写入 OpenClaw。",
+    short: "确认",
   },
 ];
 
@@ -232,30 +235,45 @@ export default function StepConfigPanel({ configState, setup, setSetup, controls
         </p>
       </div>
 
+      <div className="wizard-compact-meta">
+        <div className="wizard-compact-meta-item">
+          <span>模式</span>
+          <strong>{setup.mode === "local" ? "Local Gateway" : "Remote Gateway"}</strong>
+        </div>
+        <div className="wizard-compact-meta-item">
+          <span>写入目标</span>
+          <strong>{configState.path}</strong>
+        </div>
+        <div className="wizard-compact-meta-item">
+          <span>已选渠道</span>
+          <strong>{selectedChannels.length > 0 ? selectedChannels.join(" / ") : "未启用"}</strong>
+        </div>
+      </div>
+
       <div className="wizard-copy-shell">
         <p className="section-eyebrow">Substeps</p>
         <h3>{currentSubstep.title}</h3>
         <p className="wizard-copy">{currentSubstep.description}</p>
       </div>
 
-        <div className="mini-steps">
-          {configSubsteps.map((item, index) => {
-            const active = item.id === substep;
-            const reachable = index <= 1 || coreIssues.length === 0;
-            return (
-              <button
-                key={item.id}
-                className={`mini-step${active ? " mini-step-active" : ""}`}
-                onClick={() => jumpToSubstep(item.id)}
-                disabled={!reachable}
-              >
-                <span className="mini-step-label">{item.label}</span>
-                <strong>{item.title}</strong>
-                <p>{item.description}</p>
-              </button>
-            );
-          })}
-        </div>
+      <div className="wizard-mini-stepper">
+        {configSubsteps.map((item, index) => {
+          const active = item.id === substep;
+          const reachable = index <= 1 || coreIssues.length === 0;
+          const done = index < currentIndex;
+          return (
+            <button
+              key={item.id}
+              className={`wizard-mini-step${active ? " active" : ""}${done ? " done" : ""}`}
+              onClick={() => jumpToSubstep(item.id)}
+              disabled={!reachable}
+            >
+              <span className="wizard-mini-step-badge">{done ? "✓" : item.label}</span>
+              <strong>{item.short}</strong>
+            </button>
+          );
+        })}
+      </div>
 
         {substep === "core" ? (
           <div className="wizard-step-shell">

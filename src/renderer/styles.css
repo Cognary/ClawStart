@@ -240,6 +240,75 @@ button:disabled {
   font-family: var(--font-display);
 }
 
+.wizard-compact-meta {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wizard-compact-meta-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.wizard-compact-meta-item span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wizard-compact-meta-item strong {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.wizard-mini-stepper {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wizard-mini-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+}
+
+.wizard-mini-step strong {
+  font-size: 0.9rem;
+}
+
+.wizard-mini-step.active {
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, rgba(200, 244, 94, 0.1), rgba(255, 255, 255, 0.02));
+  color: var(--text);
+}
+
+.wizard-mini-step.done {
+  color: var(--text);
+}
+
+.wizard-mini-step-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+}
+
 .wizard-check-list,
 .wizard-inline-log-list {
   display: grid;
@@ -1155,54 +1224,6 @@ button:disabled {
   margin: 0 0 4px;
   color: var(--muted);
   line-height: 1.58;
-}
-
-.mini-steps {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.mini-step {
-  display: grid;
-  gap: 6px;
-  text-align: left;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--text);
-}
-
-.mini-step:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.mini-step-label {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--accent);
-  font-size: 0.8rem;
-}
-
-.mini-step strong {
-  font-size: 1rem;
-}
-
-.mini-step p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
-.mini-step-active {
-  border-color: var(--line-strong);
-  background: linear-gradient(180deg, rgba(200, 244, 94, 0.08), rgba(255, 255, 255, 0.02));
 }
 
 .wizard-step-shell {
