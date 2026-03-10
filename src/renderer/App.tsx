@@ -37,7 +37,7 @@ export default function App() {
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [surfacePreference, setSurfacePreference] = useState<AppSurface>("installer");
   const [installerSupportTab, setInstallerSupportTab] = useState<InstallerSupportTab>("issues");
-  const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>("diagnostics");
+  const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>("overview");
   const [configDraft, setConfigDraft] = useState("");
   const [configDirty, setConfigDirty] = useState(false);
   const [installerSetup, setInstallerSetup] = useState<InstallerSetupPayload | null>(null);
@@ -223,7 +223,7 @@ export default function App() {
     );
 
     if (!installed || !ready || !verified) {
-      setWorkspacePanel("diagnostics");
+      setWorkspacePanel("overview");
     }
 
     if (!installed || !ready || (!onboardingSession && !verified)) {

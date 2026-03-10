@@ -29,7 +29,10 @@ interface ConfigEditorPanelProps {
   setConfigDraft: (next: string) => void;
   configDirty: boolean;
   controls: IntentControls;
+  section?: ConfigEditorSection;
 }
+
+export type ConfigEditorSection = "all" | "models" | "skills" | "channels" | "settings";
 
 function parseDraft(content: string) {
   try {
@@ -380,6 +383,7 @@ export default function ConfigEditorPanel({
   setConfigDraft,
   configDirty,
   controls,
+  section = "all",
 }: ConfigEditorPanelProps) {
   const { parsed, error } = parseDraft(configDraft);
   const workspace = readStringField(parsed, ["agents", "defaults", "workspace"]);
@@ -446,27 +450,41 @@ export default function ConfigEditorPanel({
     : codexConfigured
       ? "配置里已经声明 openai-codex，但当前没有检测到本机 OAuth 凭证。"
       : "还没有检测到 openai-codex 凭证，可以直接发起 Codex 登录。";
+  const showSettings = section === "all" || section === "settings";
+  const showModels = section === "all" || section === "models";
+  const showSkills = section === "all" || section === "skills";
+  const showChannels = section === "all" || section === "channels";
+  const saveLabel =
+    section === "models"
+      ? "保存模型配置"
+      : section === "skills"
+        ? "保存 Skills 配置"
+        : section === "channels"
+          ? "保存渠道配置"
+          : "保存设置";
 
   return (
     <div className="config-panel-shell">
       <div className="config-panel-scroll">
-        <div className="fact-grid">
-          <article className="fact-card">
-            <span>配置文件</span>
-            <strong>{configState.path}</strong>
-            <p>{configState.exists ? "已经存在，保存时会自动备份旧文件。" : "首次保存后将创建配置文件。"}</p>
-          </article>
-          <article className="fact-card">
-            <span>当前 workspace</span>
-            <strong>{workspace || configState.summary.workspace || "未填写"}</strong>
-            <p>首次安装只需要把 workspace 填正确即可。</p>
-          </article>
-          <article className="fact-card">
-            <span>Dashboard 地址</span>
-            <strong>{dashboardHost}:{gatewayPort || configState.summary.gatewayPort || 18789}</strong>
-            <p>保存配置并验证通过后，这里会成为主要入口。</p>
-          </article>
-        </div>
+        {showSettings ? (
+          <div className="fact-grid">
+            <article className="fact-card">
+              <span>配置文件</span>
+              <strong>{configState.path}</strong>
+              <p>{configState.exists ? "已经存在，保存时会自动备份旧文件。" : "首次保存后将创建配置文件。"}</p>
+            </article>
+            <article className="fact-card">
+              <span>当前 workspace</span>
+              <strong>{workspace || configState.summary.workspace || "未填写"}</strong>
+              <p>控制台设置会直接写入这份运行配置。</p>
+            </article>
+            <article className="fact-card">
+              <span>Dashboard 地址</span>
+              <strong>{dashboardHost}:{gatewayPort || configState.summary.gatewayPort || 18789}</strong>
+              <p>保存配置并验证通过后，这里会成为主要入口。</p>
+            </article>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="inline-warning">
@@ -475,75 +493,78 @@ export default function ConfigEditorPanel({
           </div>
         ) : null}
 
-        <div className="form-grid">
-          <label className="form-field">
-            <span>workspace 路径</span>
-            <input
-              type="text"
-              value={workspace}
-              onChange={(event) => {
-                setConfigDraft(
-                  updateDraft(configDraft, (draft) => {
-                    const agents = ensureRecord(draft, "agents");
-                    const defaults = ensureRecord(agents, "defaults");
-                    defaults.workspace = event.target.value;
-                  }),
-                );
-              }}
-            />
-          </label>
-          <label className="form-field">
-            <span>gateway host</span>
-            <input
-              type="text"
-              value={gatewayBind}
-              onChange={(event) => {
-                setConfigDraft(
-                  updateDraft(configDraft, (draft) => {
-                    const gateway = (draft.gateway as Record<string, unknown> | undefined) || {};
-                    gateway.bind = event.target.value;
-                    draft.gateway = gateway;
-                  }),
-                );
-              }}
-            />
-          </label>
-          <label className="form-field">
-            <span>gateway port</span>
-            <input
-              type="number"
-              value={gatewayPort}
-              onChange={(event) => {
-                setConfigDraft(
-                  updateDraft(configDraft, (draft) => {
-                    const gateway = (draft.gateway as Record<string, unknown> | undefined) || {};
-                    gateway.port = Number(event.target.value || 18789);
-                    draft.gateway = gateway;
-                  }),
-                );
-              }}
-            />
-          </label>
-          <label className="form-field">
-            <span>tools.profile</span>
-            <select
-              value={toolProfile}
-              onChange={(event) => {
-                setConfigDraft(
-                  updateDraft(configDraft, (draft) => {
-                    const tools = ensureRecord(draft, "tools");
-                    tools.profile = event.target.value;
-                  }),
-                );
-              }}
-            >
-              <option value="coding">coding</option>
-              <option value="general">general</option>
-            </select>
-          </label>
-        </div>
+        {showSettings ? (
+          <div className="form-grid">
+            <label className="form-field">
+              <span>workspace 路径</span>
+              <input
+                type="text"
+                value={workspace}
+                onChange={(event) => {
+                  setConfigDraft(
+                    updateDraft(configDraft, (draft) => {
+                      const agents = ensureRecord(draft, "agents");
+                      const defaults = ensureRecord(agents, "defaults");
+                      defaults.workspace = event.target.value;
+                    }),
+                  );
+                }}
+              />
+            </label>
+            <label className="form-field">
+              <span>gateway host</span>
+              <input
+                type="text"
+                value={gatewayBind}
+                onChange={(event) => {
+                  setConfigDraft(
+                    updateDraft(configDraft, (draft) => {
+                      const gateway = (draft.gateway as Record<string, unknown> | undefined) || {};
+                      gateway.bind = event.target.value;
+                      draft.gateway = gateway;
+                    }),
+                  );
+                }}
+              />
+            </label>
+            <label className="form-field">
+              <span>gateway port</span>
+              <input
+                type="number"
+                value={gatewayPort}
+                onChange={(event) => {
+                  setConfigDraft(
+                    updateDraft(configDraft, (draft) => {
+                      const gateway = (draft.gateway as Record<string, unknown> | undefined) || {};
+                      gateway.port = Number(event.target.value || 18789);
+                      draft.gateway = gateway;
+                    }),
+                  );
+                }}
+              />
+            </label>
+            <label className="form-field">
+              <span>tools.profile</span>
+              <select
+                value={toolProfile}
+                onChange={(event) => {
+                  setConfigDraft(
+                    updateDraft(configDraft, (draft) => {
+                      const tools = ensureRecord(draft, "tools");
+                      tools.profile = event.target.value;
+                    }),
+                  );
+                }}
+              >
+                <option value="coding">coding</option>
+                <option value="general">general</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
 
         <div className="stack-fields">
+        {showModels ? (
         <article className="subform-card">
           <div className="subform-header">
             <strong>模型提供商</strong>
@@ -826,7 +847,9 @@ export default function ConfigEditorPanel({
             })}
           </div>
         </article>
+        ) : null}
 
+        {showModels ? (
         <article className="subform-card">
           <div className="subform-header">
             <strong>模型</strong>
@@ -936,7 +959,9 @@ export default function ConfigEditorPanel({
             </label>
           </div>
         </article>
+        ) : null}
 
+        {showSkills ? (
         <article className="subform-card">
           <div className="subform-header">
             <strong>Skills 与搜索</strong>
@@ -1071,7 +1096,9 @@ export default function ConfigEditorPanel({
             </label>
           </div>
         </article>
+        ) : null}
 
+        {showChannels ? (
         <article className="subform-card">
           <div className="subform-header">
             <strong>Channels</strong>
@@ -1373,18 +1400,21 @@ export default function ConfigEditorPanel({
             </div>
           </div>
         </article>
+        ) : null}
         </div>
 
-        <details className="advanced-block">
-          <summary>高级 JSON5</summary>
-          <textarea className="config-raw-editor" value={configDraft} onChange={(event) => setConfigDraft(event.target.value)} spellCheck={false} />
-        </details>
+        {showSettings ? (
+          <details className="advanced-block">
+            <summary>高级 JSON5</summary>
+            <textarea className="config-raw-editor" value={configDraft} onChange={(event) => setConfigDraft(event.target.value)} spellCheck={false} />
+          </details>
+        ) : null}
       </div>
 
       <div className="intent-row">
-        <IntentButton intent="saveConfig" fallbackLabel={configDirty ? "保存并继续" : "已保存"} variant="primary" {...controls} />
-        <IntentButton intent="reloadConfig" fallbackLabel="从磁盘重载" {...controls} />
-        <IntentButton intent="resetConfigDraft" fallbackLabel="恢复默认模板" {...controls} />
+        <IntentButton intent="saveConfig" fallbackLabel={configDirty ? saveLabel : "已保存"} variant="primary" {...controls} />
+        {showSettings ? <IntentButton intent="reloadConfig" fallbackLabel="从磁盘重载" {...controls} /> : null}
+        {showSettings ? <IntentButton intent="resetConfigDraft" fallbackLabel="恢复默认模板" {...controls} /> : null}
         <IntentButton intent="revealConfigPath" fallbackLabel="打开配置位置" {...controls} />
       </div>
     </div>

@@ -1,9 +1,9 @@
 import type { RunningTask, TerminalSession } from "../../main/types";
 import type { DerivedAppModel, IntentControls, TerminalControls, WorkspacePanel } from "../app/model";
-import WorkspaceOverview from "./WorkspaceOverview";
 import WorkspacePanelTabs from "./WorkspacePanelTabs";
 import WorkspaceSidebar from "./WorkspaceSidebar";
 import WorkspaceStatusBar from "./WorkspaceStatusBar";
+import WorkspaceToolbar from "./WorkspaceToolbar";
 
 interface WorkspaceShellProps {
   model: DerivedAppModel;
@@ -51,7 +51,7 @@ export default function WorkspaceShell({
 
       <section className="stage stage-workspace">
         <WorkspaceStatusBar model={model} />
-        <WorkspaceOverview model={model} controls={controls} message={message} />
+        <WorkspaceToolbar activePanel={activePanel} controls={controls} />
         <WorkspacePanelTabs
           model={model}
           activePanel={activePanel}

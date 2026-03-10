@@ -24,7 +24,7 @@ export type AppSurface = "installer" | "workspace";
 export type StepStatus = "done" | "current" | "upcoming";
 export type SetupStageId = "environmentCheck" | "environmentRepair" | "install" | "config" | "onboarding" | "verify";
 export type InstallerSupportTab = "issues" | "output" | "tasks";
-export type WorkspacePanel = "diagnostics" | "terminal" | "config" | "logs";
+export type WorkspacePanel = "overview" | "models" | "skills" | "channels" | "terminal" | "logs" | "settings";
 export type DiagnosticSeverity = "blocking" | "warning" | "info";
 
 export interface LogEntry {

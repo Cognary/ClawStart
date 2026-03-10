@@ -357,22 +357,6 @@ button:disabled {
   padding: 22px 24px;
 }
 
-.workspace-overview-shell {
-  position: sticky;
-  top: 54px;
-  z-index: 6;
-}
-
-.workspace-overview-shell.collapsed {
-  padding-bottom: 0;
-}
-
-.workspace-overview-shell.collapsed .workspace-overview-toolbar {
-  padding-top: 14px;
-  padding-bottom: 14px;
-  align-items: center;
-}
-
 .workspace-status-bar {
   position: sticky;
   top: 0;
@@ -381,17 +365,38 @@ button:disabled {
   justify-content: flex-end;
 }
 
-.workspace-overview-toolbar {
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+}
+
+.workspace-toolbar-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-toolbar-copy h2 {
+  margin: 0;
+}
+
+.workspace-toolbar-actions {
+  margin-left: auto;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.workspace-overview-toolbar,
+.workspace-overview-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.workspace-overview-toggle {
-  flex: 0 0 auto;
-}
-
+.workspace-overview-panel,
 .workspace-overview-body {
   display: grid;
   gap: 18px;
@@ -407,28 +412,11 @@ button:disabled {
   gap: 18px;
 }
 
-.workspace-overview-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-}
-
 .workspace-status-strip {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.workspace-overview-actions {
-  margin-left: auto;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.workspace-overview-shell.collapsed .workspace-overview-actions {
-  align-self: center;
 }
 
 .workspace-status-pill {
@@ -844,9 +832,15 @@ button:disabled {
 
 .workspace-panel-shell > .section-card-body {
   min-height: 0;
+  overflow: auto;
 }
 
-.workspace-panel-config > .section-card-body {
+.workspace-panel-models > .section-card-body,
+.workspace-panel-skills > .section-card-body,
+.workspace-panel-channels > .section-card-body,
+.workspace-panel-settings > .section-card-body,
+.workspace-panel-terminal > .section-card-body,
+.workspace-panel-logs > .section-card-body {
   overflow: hidden;
 }
 

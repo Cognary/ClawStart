@@ -8,10 +8,13 @@ interface WorkspaceSidebarProps {
 }
 
 const workspacePanelItems: Array<{ id: WorkspacePanel; label: string; description: string }> = [
-  { id: "diagnostics", label: "诊断", description: "看当前问题和修复建议。" },
+  { id: "overview", label: "概览", description: "查看服务状态、当前问题和运行任务。" },
+  { id: "models", label: "模型", description: "切换提供商、模型和认证凭证。" },
+  { id: "skills", label: "Skills", description: "管理搜索、bundled skills 和加载策略。" },
+  { id: "channels", label: "渠道", description: "维护 Telegram、Discord、WhatsApp、Signal。" },
   { id: "terminal", label: "终端", description: "处理 Onboarding 和调试 Shell。" },
-  { id: "config", label: "配置", description: "维护 OpenClaw 配置。" },
   { id: "logs", label: "日志", description: "查看最近输出和运行痕迹。" },
+  { id: "settings", label: "设置", description: "维护 workspace、gateway 和高级 JSON5。" },
 ];
 
 export default function WorkspaceSidebar({
@@ -24,12 +27,12 @@ export default function WorkspaceSidebar({
     <aside className="sidebar sidebar-workspace">
       <section className="sidebar-panel hero-panel">
         <p className="section-eyebrow">ClawStart</p>
-        <h1>OpenClaw 工作台</h1>
-        <p className="hero-copy">安装已经完成，现在这里专门负责启动、检查、配置和日志维护。</p>
+        <h1>OpenClaw 控制台</h1>
+        <p className="hero-copy">安装完成后，这里只负责运行、配置、渠道、日志和长期维护。</p>
       </section>
 
-      <nav className="workspace-menu" aria-label="维护面板">
-        <p className="section-eyebrow">Workspace</p>
+      <nav className="workspace-menu" aria-label="控制台导航">
+        <p className="section-eyebrow">Console</p>
         <div className="workspace-menu-list">
           {workspacePanelItems.map((item) => (
             <button
